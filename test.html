@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dofus Equipements - Gestionnaire de Stuff</title>
+    <link rel="stylesheet" href="test.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Dofus Equipements - Gestionnaire de Stuff</h1>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-profil">⚔️ Mon Stuff</button>
+            <button class="tab-btn" data-tab="tab-bdd">📦 Base de données</button>
+            <button class="tab-btn" data-tab="tab-character">👤 Personnage</button>
+        </div>
+
+        <!-- TAB PROFIL -->
+        <div id="tab-profil" class="tab-content active">
+            <div class="main-layout">
+                <div class="equipped-slots"><h2>📦 Équipement du personnage</h2><div id="equippedSlotsList"></div></div>
+                <div class="stats-center">
+                    <div class="main-stats-line">
+                        <div class="main-stat"><div class="main-stat-value" id="sumVita">0</div><div class="main-stat-label">❤️PdV</div></div>
+                        <div class="main-stat"><div class="main-stat-value" id="sumPP">0</div><div class="main-stat-label">🔍PP</div></div>
+                        <div class="main-stat"><div class="main-stat-value" id="sumPA">0</div><div class="main-stat-label">⭐PA</div></div>
+                        <div class="main-stat"><div class="main-stat-value" id="sumPM">0</div><div class="main-stat-label">🟩PM</div></div>
+                        <div class="main-stat"><div class="main-stat-value" id="sumPO">0</div><div class="main-stat-label">👁️PO</div></div>
+                    </div>
+
+                    <div class="details-stats">
+                        <h4>📊 CARACTÉRISTIQUES PRINCIPALES</h4>
+                        <div class="stats-double-column">
+                            <div class="stat-detail"><span class="stat-detail-label">❤️ Vitalité</span><span class="stat-detail-value" id="charVita">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">📖 Sagesse</span><span class="stat-detail-value" id="charSagesse">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">💪 Force</span><span class="stat-detail-value" id="charForce">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔥 Intelligence</span><span class="stat-detail-value" id="charIntel">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">💧 Chance</span><span class="stat-detail-value" id="charChance">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🍃 Agilité</span><span class="stat-detail-value" id="charAgilite">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">⚡ Puissance</span><span class="stat-detail-value" id="charPuissance">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔍 Prospection</span><span class="stat-detail-value" id="charProspection">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔝 Initiative</span><span class="stat-detail-value" id="charInitiative">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">❗ Critique</span><span class="stat-detail-value" id="charCritique">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">💕 Soin</span><span class="stat-detail-value" id="charSoin">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🐱 PI</span><span class="stat-detail-value" id="charPI">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🏃 Fuite</span><span class="stat-detail-value" id="charFuite">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🦶⭐ Esquive PA</span><span class="stat-detail-value" id="charEsqPA">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🦶🟩 Esquive PM</span><span class="stat-detail-value" id="charEsqPM">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔒 Pods</span><span class="stat-detail-value" id="charPods">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">♾️ Tacle</span><span class="stat-detail-value" id="charTacle">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">➖⭐ Retrait PA</span><span class="stat-detail-value" id="charRetPA">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">➖🟩 Retrait PM</span><span class="stat-detail-value" id="charRetPM">0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="details-stats">
+                        <h4>⚔️ DÉGÂTS</h4>
+                        <div class="stats-double-column">
+                            <div class="stat-detail"><span class="stat-detail-label">⚪ Dommage Neutre</span><span class="stat-detail-value" id="charDoNeutre">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🟤 Dommage Terre</span><span class="stat-detail-value" id="charDoTerre">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔴 Dommage Feu</span><span class="stat-detail-value" id="charDoFeu">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔵 Dommage Eau</span><span class="stat-detail-value" id="charDoEau">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🟢 Dommage Air</span><span class="stat-detail-value" id="charDoAir">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">⚡ Dommage</span><span class="stat-detail-value" id="charDommage">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">❗ Dommage Critique</span><span class="stat-detail-value" id="charDoCri">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🔜 Dommage Poussée</span><span class="stat-detail-value" id="charDoPou">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🗡️ % Dommage Armes</span><span class="stat-detail-value" id="charDoPerArme">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🪄 % Dommage Sorts</span><span class="stat-detail-value" id="charDoSort">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🤜 % Dommage Mélée</span><span class="stat-detail-value" id="charDoMelee">0</span></div>
+                            <div class="stat-detail"><span class="stat-detail-label">🏹 % Dommage Distance</span><span class="stat-detail-value" id="charDoDist">0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bonus-stats">
+                        <div class="bonus-item"><span class="bonus-label">⭐PA</span><span class="bonus-value" id="bonusPA">+0</span></div>
+                        <div class="bonus-item"><span class="bonus-label">🟩PM</span><span class="bonus-value" id="bonusPM">+0</span></div>
+                        <div class="bonus-item"><span class="bonus-label">👁️PO</span><span class="bonus-value" id="bonusPO">+0</span></div>
+                    </div>
+
+                    <div class="resistances-set">
+                        <h4>🛡️ RÉSISTANCES</h4>
+                        <div class="resist-grid-set">
+                            <div class="resist-item-set"><span>🛡️⬜ Neutre</span><span id="resNeutre">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🟫 Terre</span><span id="resTerre">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🟥 Feu</span><span id="resFeu">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🟦 Eau</span><span id="resEau">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🟩 Air</span><span id="resAir">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️❗ Critique</span><span id="resCri">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🤜 Mélée</span><span id="resMelee">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🗡️ Armes</span><span id="resArmes">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🔜 Poussée</span><span id="resPou">0%</span></div>
+                            <div class="resist-item-set"><span>🛡️🏹 Distance</span><span id="resDist">0%</span></div>
+                        </div>
+                    </div>
+
+                    <div class="forgemage-set">
+                        <div class="forge-item-set">
+                            <input type="checkbox" id="forgePACheck" onchange="toggleForgePA()">
+                            <span class="forge-label-set">⭐PA</span>
+                            <span class="forge-value-set" id="forgePAValue">+0</span>
+                        </div>
+                        <div class="forge-item-set">
+                            <input type="checkbox" id="forgePMCheck" onchange="toggleForgePM()">
+                            <span class="forge-label-set">🟩PM</span>
+                            <span class="forge-value-set" id="forgePMValue">+0</span>
+                        </div>
+                        <div class="forge-item-set">
+                            <input type="checkbox" id="forgePOCheck" onchange="toggleForgePO()">
+                            <span class="forge-label-set">👁️PO</span>
+                            <span class="forge-value-set" id="forgePOValue">+0</span>
+                        </div>
+                    </div>
+
+                    <div class="parchotage-section">
+                        <div class="parchotage-title">
+                            📜 Parchottages <span style="font-size: 0.7rem;">(max 100 par stat)</span>
+                        </div>
+                        <div class="parchotage-grid">
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">❤️ Vitalité</span>
+                                <input type="number" id="parchotageVita" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('vita', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('vita', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageVitaValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">💪 Force</span>
+                                <input type="number" id="parchotageForce" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('force', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('force', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageForceValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">🔥 Intelligence</span>
+                                <input type="number" id="parchotageIntel" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('intelligence', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('intelligence', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageIntelValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">💧 Chance</span>
+                                <input type="number" id="parchotageChance" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('chance', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('chance', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageChanceValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">🍃 Agilité</span>
+                                <input type="number" id="parchotageAgilite" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('agilite', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('agilite', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageAgiliteValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">📖 Sagesse</span>
+                                <input type="number" id="parchotageSagesse" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('sagesse', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('sagesse', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageSagesseValue">+0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION TEMPLATES -->
+                    <div class="template-panel">
+                        <h3>💾 Templates de stuff</h3>
+                        <div class="template-controls">
+                            <input type="text" id="templateName" placeholder="Nom du template">
+                            <div class="template-buttons">
+                                <button id="saveTemplateBtn">💾 Sauvegarder</button>
+                                <button id="updateTemplateBtn" style="background: linear-gradient(135deg, #ffa500, #cc8400);">✏️ Modifier</button>
+                            </div>
+                            <select id="loadTemplateSelect">
+                                <option value="">Charger un template...</option>
+                            </select>
+                            <button id="deleteTemplateBtn">🗑️ Supprimer</button>
+                        </div>
+                        <div id="templateStatus" class="template-status"></div>
+                    </div>
+
+                    <div class="total-value-box"><span>💰 Valeur totale: <span id="totalValue">0</span> Kamas</span></div>
+                </div>
+                <div class="inventory">
+                    <div class="inventory-header">
+                        <h2>📦 Inventaire <span id="inventoryCount" style="font-size: 0.8rem;"></span></h2>
+                        <div class="search-bar">
+                            <input type="text" id="searchInventory" placeholder="Rechercher...">
+                            <select id="levelFilter"><option value="">Tous niveaux</option><option value="1">1-99</option><option value="2">100-149</option><option value="3">150-199</option><option value="4">200</option></select>
+                        </div>
+                        <div class="categories-filter" id="categoriesFilter"><button class="cat-filter active" data-cat="all">Toutes catégories</button></div>
+                        <div class="visible-count">Visible: <span id="visibleCount">0</span></div>
+                    </div>
+                    <div class="inventory-list" id="inventoryList"><div style="text-align:center;padding:40px;">Chargement...</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB BASE DE DONNÉES -->
+        <div id="tab-bdd" class="tab-content">
+            <div class="search-panel">
+                <h2>🔍 Recherche avancée</h2>
+                <div class="search-filters">
+                    <input type="text" id="searchNom" placeholder="Nom de l'équipement...">
+                    <select id="searchLevelBdd">
+                        <option value="">Tous niveaux</option>
+                        <option value="1">1-99</option>
+                        <option value="2">100-149</option>
+                        <option value="3">150-199</option>
+                        <option value="4">200</option>
+                    </select>
+                    <select id="searchStatBdd">
+                        <option value="">Toutes stats</option>
+                        <option value="vita">❤️ Vitalité</option>
+                        <option value="force">💪 Force</option>
+                        <option value="intelligence">🔥 Intelligence</option>
+                        <option value="chance">💧 Chance</option>
+                        <option value="agilite">🍃 Agilité</option>
+                        <option value="pa">⭐ PA</option>
+                        <option value="pm">🟩 PM</option>
+                        <option value="portee">👁️ Portée</option>
+                        <option value="sagesse">📖 Sagesse</option>
+                        <option value="prospection">🔍 Prospection</option>
+                    </select>
+                    <input type="number" id="searchStatMin" placeholder="Min" style="width: 80px;">
+                    <input type="number" id="searchStatMax" placeholder="Max" style="width: 80px;">
+                    <select id="searchPanoplieBdd">
+                        <option value="">Toutes panoplies</option>
+                    </select>
+                    <div class="display-mode-group" aria-label="Choisir le mode d'affichage">
+                        <button type="button" class="display-mode-btn active" data-mode="card" aria-label="Mode carte">
+                            <span class="display-mode-label">🖼️</span>
+                            <span class="display-mode-state">ON</span>
+                        </button>
+                        <button type="button" class="display-mode-btn" data-mode="image" aria-label="Mode image">
+                            <span class="display-mode-label">🪟​</span>
+                            <span class="display-mode-state">OFF</span>
+                        </button>
+                    </div>
+                    <button id="btnRechercher">Rechercher</button>
+                    <button id="btnReset">Réinitialiser</button>
+                </div>
+            </div>
+            <div class="categories" id="categoriesBdd">
+                <button class="cat-btn active" data-categorie="all">📦 Tous</button>
+            </div>
+            <div id="equipementGrid" class="equipement-grid"><div style="text-align:center;grid-column:1/-1;padding:50px;">⏳ Chargement...</div></div>
+            <button id="backToTopBdd" class="back-to-top" aria-label="Retour en haut">↑</button>
+        </div>
+
+        <!-- TAB PERSONNAGE -->
+        <div id="tab-character" class="tab-content">
+            <iframe src="character.html" style="width: 100%; height: calc(100vh - 200px); border: none; border-radius: 10px;"></iframe>
+        </div>
+
+        <!-- MODAL DÉTAILS -->
+        <div id="modalDetails" class="modal-details">
+            <div class="modal-details-content">
+                <div class="modal-details-header"><h3 id="detailTitle">Détails de l'équipement</h3><button class="modal-close" onclick="closeDetailsModal()">&times;</button></div>
+                <div class="modal-details-body" id="detailContent"></div>
+            </div>
+        </div>
+
+        <details class="shortcuts">
+            <summary class="shortcuts-toggle">📌</summary>
+            <div class="shortcuts-content">
+                ✏️ Clique sur les chiffres pour modifier<br>
+                🔍 Clique sur 🔍 pour voir la fiche complète<br>
+                ➕ Ajoute depuis la Base de données<br>
+                ☑️ Coche les bonus PA/PM/PO pour la forgemagie<br>
+                ⚡ Limites : max 12 PA, 6 PM, 6 PO<br>
+                📜 Les parchottages s'ajoutent aux stats de base<br>
+                💾 Sauvegarde tes stuffs dans les templates<br>
+                ✏️ Sélectionne un template puis clique sur "Modifier" pour le mettre à jour<br>
+                📚 Données DofusDB chargées via l’API publique
+            </div>
+        </details>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>📦 Dofus Equipements</h4>
+                <p>Gestionnaire de stuff pour Dofus</p>
+                <p>Version 2.0</p>
+                <p>© GSTK 2026</p>
+            </div>
+            <div class="footer-section">
+                <h4>📚 Sources des données</h4>
+                <p>Données fournies par</p>
+                <p><strong>DofusDB API</strong></p>
+                <ul>
+                    <li><a href="https://api.dofusdb.fr" target="_blank">🌐 api.dofusdb.fr</a></li>
+                    <li><a href="https://www.dofusdb.fr" target="_blank">🔍 dofusdb.fr</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>🔗 Liens utiles</h4>
+                <ul>
+                    <li><a href="#" onclick="window.location.reload()">🔄 Actualiser</a></li>
+                    <li><a href="#" onclick="if(confirm('⚠️ Effacer toutes les données ? Cette action est irréversible.')) { localStorage.clear(); window.location.reload(); }">🗑️ Effacer les données</a></li>
+                    <li><a href="https://www.dofus.com" target="_blank">🎮 Site officiel Dofus</a></li>
+                    <li><a href="https://www.ankama.com" target="_blank">🏢 Ankama</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>📊 Statistiques</h4>
+                <p>📦 Inventaire: <span id="footerInventoryCount">0</span> équipements</p>
+                <p>⚔️ Templates: <span id="footerTemplateCount">0</span></p>
+                <p>🔄 Dernière synchro: <span id="lastUpdate">-</span></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Dofus est une marque déposée d'Ankama Studio. Ce site est un outil non officiel et n'est pas affilié à Ankama.</p>
+            <p>Les données des équipements sont fournies par <strong>DofusDB API</strong> (https://api.dofusdb.fr) — merci à leur équipe !</p>
+            <div class="footer-credits">
+                Développé par GSTK © 2026
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import('./test.js?cache=' + Date.now());
+    </script>
+
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'bdd') {
+                const bddTabBtn = document.querySelector('.tab-btn[data-tab="tab-bdd"]');
+                if (bddTabBtn) {
+                    setTimeout(() => bddTabBtn.click(), 100);
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

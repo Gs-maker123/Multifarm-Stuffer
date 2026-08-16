@@ -1,0 +1,15 @@
+{
+    "name": "dofus-equipements",
+    "version": "1.0.0",
+    "description": "Gestionnaire de stuff Dofus",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "npx live-server"
+    },
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "live-server": "^1.2.2"
+    }
+}

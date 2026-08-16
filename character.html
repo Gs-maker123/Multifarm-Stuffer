@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personnage - Dofus Equipements</title>
+    <link rel="stylesheet" href="test.css">
+    <style>
+        .character-page {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .character-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .character-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .character-header h1 {
+            font-size: 2.5rem;
+            color: #ffd89b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin: 0 0 10px 0;
+        }
+
+        .character-header-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .info-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border-left: 3px solid #ffd966;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ffd89b;
+        }
+
+        /* Layout principal - Stats à droite, équipements à gauche fixe */
+        .main-content {
+            display: flex;
+            flex-direction: row;
+            gap: 30px;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+        }
+
+        .equipment-wrapper {
+            flex: 1;
+            min-width: 400px;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .equipment-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .equipment-wrapper::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .equipment-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 216, 155, 0.5);
+            border-radius: 3px;
+        }
+
+        .stats-wrapper {
+            flex: 1.2;
+            min-width: 500px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .stats-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .stats-wrapper::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .stats-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 216, 155, 0.7);
+            border-radius: 4px;
+        }
+
+        .stats-wrapper::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 216, 155, 1);
+        }
+
+        .display-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .equipment-row {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .equipment-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .character-center-large {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            flex: 0 0 auto;
+        }
+
+        .character-image-large {
+            width: 280px;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 2px solid #ffd966;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .character-image-large img {
+            width: auto;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .character-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .character-actions button {
+            background: linear-gradient(135deg, #ffd966, #b8860b);
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .character-actions button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 217, 102, 0.3);
+        }
+
+        .equipment-item {
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 217, 102, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            flex: 0 0 100px;
+        }
+
+        .equipment-item:hover {
+            border-color: rgba(255, 217, 102, 0.8);
+            background: rgba(255, 217, 102, 0.1);
+            transform: scale(1.08);
+            box-shadow: 0 0 15px rgba(255, 217, 102, 0.3);
+        }
+
+        .equipment-item img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+        }
+
+        .equipment-bottom {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .stats-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 2px solid #ffd966;
+            padding: 30px;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .stats-panel h2 {
+            color: #ffd89b;
+            font-size: 1.5rem;
+            margin: 0 0 20px 0;
+            border-bottom: 2px solid #ffd966;
+            padding-bottom: 10px;
+        }
+
+        .forgemage-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .forgemage-title {
+            color: #ffd89b;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .forgemage-options {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .forge-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .forge-option:hover {
+            background: rgba(255, 216, 155, 0.15);
+        }
+
+        .forge-option input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #ffd966;
+        }
+
+        .forge-label {
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .forge-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ffd89b;
+            min-width: 35px;
+        }
+
+        .forge-warning {
+            font-size: 0.75rem;
+            color: #ff8888;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .parchotage-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .parchotage-title {
+            color: #ffd89b;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .parchotage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .parchotage-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 6px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .parchotage-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            min-width: 60px;
+        }
+
+        .parchotage-input {
+            width: 60px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #ffd89b;
+            border-radius: 4px;
+            color: #ffd89b;
+            padding: 4px 6px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .parchotage-input:focus {
+            outline: none;
+            border-color: #c7e9fb;
+            box-shadow: 0 0 5px rgba(199, 233, 251, 0.5);
+        }
+
+        .parchotage-value {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #ffd89b;
+            min-width: 35px;
+            text-align: right;
+        }
+
+        .parchotage-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .parchotage-btn-zero, .parchotage-btn-hundred {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 216, 155, 0.3);
+            border-radius: 4px;
+            color: #ffd89b;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+
+        .parchotage-btn-zero:hover {
+            background: rgba(255, 68, 68, 0.3);
+            border-color: #ff4444;
+            color: #ff8888;
+        }
+
+        .parchotage-btn-hundred:hover {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4caf50;
+            color: #8bc34a;
+        }
+
+        .parchotage-btn-zero:active, .parchotage-btn-hundred:active {
+            transform: scale(0.95);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid #ffd966;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #aaa;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffd89b;
+        }
+
+        .forge-info {
+            display: inline-block;
+            background: rgba(255, 216, 155, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            margin-left: 5px;
+        }
+
+        .item-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #ffd89b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 1000;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 1px solid #ffd966;
+            display: none;
+        }
+
+        .equipment-item:hover .item-tooltip {
+            display: block;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #4caf50;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: fadeInOut 2s ease;
+            border: 1px solid #4caf50;
+        }
+
+        .modal-details {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-details.active {
+            display: flex;
+        }
+
+        .modal-details-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85%;
+            overflow: auto;
+            border: 1px solid #ffd89b;
+        }
+
+        .modal-details-header {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid rgba(255, 216, 155, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-details-header h3 {
+            color: #ffd89b;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .modal-details-body {
+            padding: 20px;
+        }
+
+        .detail-image {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .detail-image img {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detail-label {
+            color: #aaa;
+        }
+
+        .detail-value {
+            font-weight: bold;
+            color: #ffd89b;
+        }
+
+        .detail-section {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .detail-section h4 {
+            color: #c7e9fb;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            font-size: 1.5rem;
+            color: #ffd89b;
+        }
+
+        .section-title {
+            color: #c7e9fb;
+            font-size: 1rem;
+            margin: 20px 0 15px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        @media (max-width: 1000px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .equipment-wrapper, .stats-wrapper {
+                min-width: auto;
+                width: 100%;
+                position: relative;
+                top: 0;
+                max-height: none;
+            }
+        }
+
+        /* Footer styles */
+        .footer {
+            background: linear-gradient(135deg, #0a0a15 0%, #0f0f1a 100%);
+            border-top: 2px solid #ffd966;
+            margin-top: 50px;
+            padding: 30px 20px 20px;
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+
+        .footer-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .footer-section h4 {
+            color: #ffd89b;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-left: 3px solid #ffd966;
+            padding-left: 10px;
+        }
+
+        .footer-section p {
+            margin: 8px 0;
+            line-height: 1.5;
+            font-size: 0.75rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 6px;
+        }
+
+        .footer-section ul li a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s ease;
+        }
+
+        .footer-section ul li a:hover {
+            color: #ffd89b;
+            text-decoration: underline;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 216, 155, 0.15);
+            font-size: 0.7rem;
+            color: #777;
+        }
+
+        .footer-bottom a {
+            color: #ffd89b;
+            text-decoration: none;
+        }
+
+        .footer-bottom a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-credits {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            .footer-section h4 {
+                border-left: none;
+                border-bottom: 1px solid #ffd966;
+                padding-left: 0;
+                padding-bottom: 8px;
+                display: inline-block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container character-container">
+        <div class="character-header">
+            <h1 id="characterName">Personnage sans nom</h1>
+            <div class="character-header-info">
+                <div class="info-group">
+                    <span class="info-label">Niveau</span>
+                    <span class="info-value" id="characterLevel">200</span>
+                </div>
+                <div class="info-group">
+                    <span class="info-label">Kamas totaux</span>
+                    <span class="info-value" id="totalKamas">0</span>
+                </div>
+                <div class="info-group">
+                    <span class="info-label">Équipements</span>
+                    <span class="info-value" id="equippedCount">0/16</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="equipment-wrapper">
+                <div class="display-wrapper">
+                    <div class="equipment-row">
+                        <div class="equipment-column" id="slotsLeft"></div>
+                        
+                        <div class="character-center-large">
+                            <div class="character-image-large">
+                                <img id="characterImg" src="assets/images/characters/dofus/0-0.png" alt="Personnage">
+                            </div>
+                            <div class="character-actions">
+                                <button id="editCharacterBtn">✏️ Nommer</button>
+                                <button id="resetCharacterBtn">🎯 Réinitialiser</button>
+                            </div>
+                        </div>
+
+                        <div class="equipment-column" id="slotsRight"></div>
+                    </div>
+
+                    <div class="equipment-bottom" id="slotsBottom"></div>
+                </div>
+            </div>
+
+            <div class="stats-wrapper">
+                <div class="stats-panel">
+                    <h2>📊 Statistiques globales</h2>
+                    
+                    <div class="forgemage-section">
+                        <div class="forgemage-title">
+                            🔨 Forgemagie <span style="font-size: 0.7rem;">(max 12 PA, 6 PM, 6 PO)</span>
+                        </div>
+                        <div class="forgemage-options">
+                            <label class="forge-option">
+                                <input type="checkbox" id="forgePACheck">
+                                <span class="forge-label">⭐ PA</span>
+                                <span class="forge-value" id="forgePAValue">+0</span>
+                            </label>
+                            <label class="forge-option">
+                                <input type="checkbox" id="forgePMCheck">
+                                <span class="forge-label">🟩 PM</span>
+                                <span class="forge-value" id="forgePMValue">+0</span>
+                            </label>
+                            <label class="forge-option">
+                                <input type="checkbox" id="forgePOCheck">
+                                <span class="forge-label">👁️ PO</span>
+                                <span class="forge-value" id="forgePOValue">+0</span>
+                            </label>
+                        </div>
+                        <div class="forge-warning" id="forgeWarning"></div>
+                    </div>
+
+                    <div class="parchotage-section">
+                        <div class="parchotage-title">
+                            📜 Parchottages <span style="font-size: 0.7rem;">(max 100 par stat)</span>
+                        </div>
+                        <div class="parchotage-grid">
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">❤️ Vitalité</span>
+                                <input type="number" id="parchotageVita" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="window.updateParchotage('vita', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="window.updateParchotage('vita', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageVitaValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">💪 Force</span>
+                                <input type="number" id="parchotageForce" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="window.updateParchotage('force', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="window.updateParchotage('force', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageForceValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">🔥 Intelligence</span>
+                                <input type="number" id="parchotageIntel" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="window.updateParchotage('intelligence', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="window.updateParchotage('intelligence', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageIntelValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">💧 Chance</span>
+                                <input type="number" id="parchotageChance" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="window.updateParchotage('chance', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="window.updateParchotage('chance', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageChanceValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">🍃 Agilité</span>
+                                <input type="number" id="parchotageAgilite" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="window.updateParchotage('agilite', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="window.updateParchotage('agilite', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageAgiliteValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">📖 Sagesse</span>
+                                <input type="number" id="parchotageSagesse" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="window.updateParchotage('sagesse', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="window.updateParchotage('sagesse', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageSagesseValue">+0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">❤️ Santé & Mouvement</div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-label">❤️ Vitalité</div><div class="stat-value" id="statVita">0</div></div>
+                        <div class="stat-card"><div class="stat-label">⭐ PA <span class="forge-info">+exo</span></div><div class="stat-value" id="statPA">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🟩 PM <span class="forge-info">+exo</span></div><div class="stat-value" id="statPM">0</div></div>
+                        <div class="stat-card"><div class="stat-label">👁️ PO <span class="forge-info">+exo</span></div><div class="stat-value" id="statPortee">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔝 Initiative</div><div class="stat-value" id="statInitiative">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔍 Prospection</div><div class="stat-value" id="statProspection">0</div></div>
+                        <div class="stat-card"><div class="stat-label">📖 Sagesse</div><div class="stat-value" id="statSagesse">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔒 Pods</div><div class="stat-value" id="statPods">0</div></div>
+                    </div>
+
+                    <div class="section-title">⚔️ Caractéristiques</div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-label">💪 Force</div><div class="stat-value" id="statForce">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔥 Intelligence</div><div class="stat-value" id="statIntelligence">0</div></div>
+                        <div class="stat-card"><div class="stat-label">💧 Chance</div><div class="stat-value" id="statChance">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🍃 Agilité</div><div class="stat-value" id="statAgilite">0</div></div>
+                        <div class="stat-card"><div class="stat-label">⚡ Puissance</div><div class="stat-value" id="statPuissance">0</div></div>
+                        <div class="stat-card"><div class="stat-label">❗ Critique</div><div class="stat-value" id="statCritique">0</div></div>
+                        <div class="stat-card"><div class="stat-label">💕 Soin</div><div class="stat-value" id="statSoin">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🐱 PI</div><div class="stat-value" id="statPI">0</div></div>
+                    </div>
+
+                    <div class="section-title">🛡️ Combat & Esquive</div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-label">♾️ Tacle</div><div class="stat-value" id="statTacle">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🏃 Fuite</div><div class="stat-value" id="statFuite">0</div></div>
+                        <div class="stat-card"><div class="stat-label">➖⭐ Esquive PA</div><div class="stat-value" id="statEsqPA">0</div></div>
+                        <div class="stat-card"><div class="stat-label">➖🟩 Esquive PM</div><div class="stat-value" id="statEsqPM">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🦶⭐ Retrait PA</div><div class="stat-value" id="statRetPA">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🦶🟩 Retrait PM</div><div class="stat-value" id="statRetPM">0</div></div>
+                    </div>
+
+                    <div class="section-title">⚔️ Dommages</div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-label">⚪ Dommage Neutre</div><div class="stat-value" id="statDoNeutre">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🟤 Dommage Terre</div><div class="stat-value" id="statDoTerre">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔴 Dommage Feu</div><div class="stat-value" id="statDoFeu">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔵 Dommage Eau</div><div class="stat-value" id="statDoEau">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🟢 Dommage Air</div><div class="stat-value" id="statDoAir">0</div></div>
+                        <div class="stat-card"><div class="stat-label">💥 Dommage Critique</div><div class="stat-value" id="statDoCri">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🔜 Dommage Poussée</div><div class="stat-value" id="statDoPou">0</div></div>
+                        <div class="stat-card"><div class="stat-label">⚔️ % Dommage Armes</div><div class="stat-value" id="statDoPerArme">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🪄 % Dommage Sorts</div><div class="stat-value" id="statDoSort">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🤜 % Dommage Mêlée</div><div class="stat-value" id="statDoMelee">0</div></div>
+                        <div class="stat-card"><div class="stat-label">🏹 % Dommage Distance</div><div class="stat-value" id="statDoDist">0</div></div>
+                        <div class="stat-card"><div class="stat-label">⚡ Dommage</div><div class="stat-value" id="statDommage">0</div></div>
+                    </div>
+
+                    <div class="section-title">🛡️ Résistances</div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-label">🛡️⬜ Neutre</div><div class="stat-value" id="resNeutre">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🟫 Terre</div><div class="stat-value" id="resTerre">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🟥 Feu</div><div class="stat-value" id="resFeu">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🟦 Eau</div><div class="stat-value" id="resEau">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🟩 Air</div><div class="stat-value" id="resAir">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️💥 Critique</div><div class="stat-value" id="resCri">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🤜 Mêlée</div><div class="stat-value" id="resMelee">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️⚔️ Armes</div><div class="stat-value" id="resArmes">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🔜 Poussée</div><div class="stat-value" id="resPou">0%</div></div>
+                        <div class="stat-card"><div class="stat-label">🛡️🏹 Distance</div><div class="stat-value" id="resDist">0%</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDetails" class="modal-details">
+        <div class="modal-details-content">
+            <div class="modal-details-header">
+                <h3 id="detailTitle">Détails de l'équipement</h3>
+                <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-details-body" id="detailContent"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { equipementsData } from './data/index.js';
+        import { hydrateAllEquipementsFromDofusDB } from './data/dofusdbSync.js';
+
+        const slotConfig = [
+            { id: "coiffes", nom: "Casque", emoji: "🎭", categorie: "coiffes", side: 'left' },
+            { id: "capes", nom: "Cape", emoji: "🧥", categorie: "capes", side: 'left' },
+            { id: "amulettes", nom: "Amulette", emoji: "📿", categorie: "amulettes", side: 'left' },
+            { id: "anneaux1", nom: "Anneau 1", emoji: "💍", categorie: "anneaux", side: 'right' },
+            { id: "anneaux2", nom: "Anneau 2", emoji: "💍", categorie: "anneaux", side: 'right' },
+            { id: "ceintures", nom: "Ceinture", emoji: "🔗", categorie: "ceintures", side: 'right' },
+            { id: "bottes", nom: "Bottes", emoji: "👢", categorie: "bottes", side: 'right' },
+            { id: "armes", nom: "Arme", emoji: "⚔️", categories: ["armes", "arcs", "epees", "baguettes", "batons", "dagues", "haches", "marteaux", "lances", "pelles", "faux", "ressource"], side: 'left' },
+            { id: "boucliers", nom: "Bouclier", emoji: "🛡️", categorie: "boucliers", side: 'right' },
+            { id: "familierMonture", nom: "Familier / Monture", emoji: "🐾", categories: ["familiers", "montiliers", "muldos", "dragodindes", "volkornes"], side: 'left' },
+            { id: "dofus1", nom: "Dofus / Trophée 1", emoji: "🥚", categories: ["dofus", "trophees"], side: 'bottom' },
+            { id: "dofus2", nom: "Dofus / Trophée 2", emoji: "🥚", categories: ["dofus", "trophees"], side: 'bottom' },
+            { id: "dofus3", nom: "Dofus / Trophée 3", emoji: "🥚", categories: ["dofus", "trophees"], side: 'bottom' },
+            { id: "dofus4", nom: "Dofus / Trophée 4", emoji: "🥚", categories: ["dofus", "trophees"], side: 'bottom' },
+            { id: "dofus5", nom: "Dofus / Trophée 5", emoji: "🥚", categories: ["dofus", "trophees"], side: 'bottom' },
+            { id: "dofus6", nom: "Dofus / Trophée 6", emoji: "🥚", categories: ["dofus", "trophees"], side: 'bottom' }
+        ];
+
+        const MAX_PA = 12;
+        const MAX_PM = 6;
+        const MAX_PO = 6;
+
+        let currentSet = {};
+        let allEquipements = [];
+        let characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+
+        let parchotageStats = {
+            vita: 0,
+            force: 0,
+            intelligence: 0,
+            chance: 0,
+            agilite: 0,
+            sagesse: 0
+        };
+
+        const baseStats = {
+            vita: 1050,
+            prospection: 100,
+            pa: 7,
+            pm: 3,
+            portee: 0
+        };
+
+        let forgePA = 0;
+        let forgePM = 0;
+        let forgePO = 0;
+        let equipmentTotals = {};
+
+        const DEFAULT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%232a2a3e"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="%23ffd89b"%3E❓%3C/text%3E%3C/svg%3E';
+
+        function showToast(message, isError = false) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            if (isError) toast.style.color = '#ff6666';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function formatKamas(value) {
+            if (!value && value !== 0) return '0';
+            return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function getImagePath(item) {
+            if (!item) return DEFAULT_IMAGE;
+            if (item.image && item.image !== 'assets/images/equipements/default.png') {
+                return item.image;
+            }
+            const categorie = item.categorie || 'equipement';
+            const imageName = item.imageName || `${item.id}.png`;
+            return `assets/images/equipements/${categorie}/${imageName}`;
+        }
+
+        function saveForgeState() {
+            localStorage.setItem('dofusForgePA', forgePA);
+            localStorage.setItem('dofusForgePM', forgePM);
+            localStorage.setItem('dofusForgePO', forgePO);
+        }
+
+        function loadForgeState() {
+            const savedPA = localStorage.getItem('dofusForgePA');
+            const savedPM = localStorage.getItem('dofusForgePM');
+            const savedPO = localStorage.getItem('dofusForgePO');
+            
+            forgePA = savedPA ? parseInt(savedPA) : 0;
+            forgePM = savedPM ? parseInt(savedPM) : 0;
+            forgePO = savedPO ? parseInt(savedPO) : 0;
+            
+            const checkPA = document.getElementById('forgePACheck');
+            const checkPM = document.getElementById('forgePMCheck');
+            const checkPO = document.getElementById('forgePOCheck');
+            
+            if (checkPA) checkPA.checked = forgePA === 1;
+            if (checkPM) checkPM.checked = forgePM === 1;
+            if (checkPO) checkPO.checked = forgePO === 1;
+            
+            const paVal = document.getElementById('forgePAValue');
+            const pmVal = document.getElementById('forgePMValue');
+            const poVal = document.getElementById('forgePOValue');
+            
+            if (paVal) paVal.textContent = forgePA === 1 ? '+1' : '+0';
+            if (pmVal) pmVal.textContent = forgePM === 1 ? '+1' : '+0';
+            if (poVal) poVal.textContent = forgePO === 1 ? '+1' : '+0';
+        }
+
+        function toggleForgePA() {
+            const check = document.getElementById('forgePACheck');
+            if (!check) return;
+            
+            let newValue = check.checked ? 1 : 0;
+            let oldValue = forgePA;
+            
+            let currentTotalPa = baseStats.pa + (equipmentTotals.pa || 0);
+            if (currentTotalPa + newValue > MAX_PA) {
+                forgePA = oldValue;
+                check.checked = oldValue === 1;
+                showToast(`⚠️ Impossible : dépasserait la limite de ${MAX_PA} PA !`, true);
+                return;
+            }
+            
+            forgePA = newValue;
+            const paVal = document.getElementById('forgePAValue');
+            if (paVal) paVal.textContent = forgePA === 1 ? '+1' : '+0';
+            saveForgeState();
+            updateStats();
+        }
+
+        function toggleForgePM() {
+            const check = document.getElementById('forgePMCheck');
+            if (!check) return;
+            
+            let newValue = check.checked ? 1 : 0;
+            let oldValue = forgePM;
+            
+            let currentTotalPm = baseStats.pm + (equipmentTotals.pm || 0);
+            if (currentTotalPm + newValue > MAX_PM) {
+                forgePM = oldValue;
+                check.checked = oldValue === 1;
+                showToast(`⚠️ Impossible : dépasserait la limite de ${MAX_PM} PM !`, true);
+                return;
+            }
+            
+            forgePM = newValue;
+            const pmVal = document.getElementById('forgePMValue');
+            if (pmVal) pmVal.textContent = forgePM === 1 ? '+1' : '+0';
+            saveForgeState();
+            updateStats();
+        }
+
+        function toggleForgePO() {
+            const check = document.getElementById('forgePOCheck');
+            if (!check) return;
+            
+            let newValue = check.checked ? 1 : 0;
+            let oldValue = forgePO;
+            
+            let currentTotalPo = (equipmentTotals.portee || 0);
+            if (currentTotalPo + newValue > MAX_PO) {
+                forgePO = oldValue;
+                check.checked = oldValue === 1;
+                showToast(`⚠️ Impossible : dépasserait la limite de ${MAX_PO} PO !`, true);
+                return;
+            }
+            
+            forgePO = newValue;
+            const poVal = document.getElementById('forgePOValue');
+            if (poVal) poVal.textContent = forgePO === 1 ? '+1' : '+0';
+            saveForgeState();
+            updateStats();
+        }
+
+        function saveParchotageState() {
+            localStorage.setItem('dofusParchotage', JSON.stringify(parchotageStats));
+        }
+
+        function loadParchotageState() {
+            const saved = localStorage.getItem('dofusParchotage');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    parchotageStats = { ...parchotageStats, ...parsed };
+                } catch (e) {
+                    console.warn('Erreur chargement parchottages:', e);
+                }
+            }
+            
+            const inputs = {
+                vita: document.getElementById('parchotageVita'),
+                force: document.getElementById('parchotageForce'),
+                intelligence: document.getElementById('parchotageIntel'),
+                chance: document.getElementById('parchotageChance'),
+                agilite: document.getElementById('parchotageAgilite'),
+                sagesse: document.getElementById('parchotageSagesse')
+            };
+            
+            for (const [stat, input] of Object.entries(inputs)) {
+                if (input) {
+                    input.value = parchotageStats[stat];
+                    input.addEventListener('change', (e) => updateParchotage(stat, parseInt(e.target.value) || 0));
+                }
+            }
+            
+            updateParchotageDisplay();
+        }
+
+        function updateParchotage(stat, value) {
+            value = Math.min(100, Math.max(0, value));
+            parchotageStats[stat] = value;
+            
+            const inputMap = {
+                vita: 'parchotageVita',
+                force: 'parchotageForce',
+                intelligence: 'parchotageIntel',
+                chance: 'parchotageChance',
+                agilite: 'parchotageAgilite',
+                sagesse: 'parchotageSagesse'
+            };
+            
+            const input = document.getElementById(inputMap[stat]);
+            if (input) input.value = value;
+            
+            const valueSpan = document.getElementById(`parchotage${stat.charAt(0).toUpperCase() + stat.slice(1)}Value`);
+            if (valueSpan) valueSpan.textContent = `+${value}`;
+            
+            saveParchotageState();
+            updateStats();
+            
+            const statNames = {
+                vita: 'Vitalité',
+                force: 'Force',
+                intelligence: 'Intelligence',
+                chance: 'Chance',
+                agilite: 'Agilité',
+                sagesse: 'Sagesse'
+            };
+            showToast(`📜 ${statNames[stat]} : ${value} parchotté${value > 0 ? 'e' : ''}`);
+        }
+
+        function updateParchotageDisplay() {
+            const displays = {
+                vita: document.getElementById('parchotageVitaValue'),
+                force: document.getElementById('parchotageForceValue'),
+                intelligence: document.getElementById('parchotageIntelValue'),
+                chance: document.getElementById('parchotageChanceValue'),
+                agilite: document.getElementById('parchotageAgiliteValue'),
+                sagesse: document.getElementById('parchotageSagesseValue')
+            };
+            
+            for (const [stat, display] of Object.entries(displays)) {
+                if (display) display.textContent = `+${parchotageStats[stat]}`;
+            }
+        }
+
+        window.updateParchotage = updateParchotage;
+
+        function showDetailsModal(item) {
+            const modal = document.getElementById('modalDetails');
+            const title = document.getElementById('detailTitle');
+            const content = document.getElementById('detailContent');
+            if (!modal || !title || !content) return;
+            
+            title.textContent = item.nom;
+            const imagePath = getImagePath(item);
+            const stats = item.stats || {};
+            const caracs = stats.caracteristiques || {};
+
+            const hasNonZeroValue = (value) => value !== undefined && value !== null && Number(value) !== 0;
+            const detailLine = (label, value, formatter = (v) => String(v)) => {
+                if (!hasNonZeroValue(value)) return '';
+                return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${formatter(value)}</span></div>`;
+            };
+
+            const characteristicsRows = [
+                detailLine('❤️ PV', stats.vita),
+                detailLine('⚡ Initiative', stats.initiative),
+                detailLine('🔍 Prospection', stats.prospection),
+                detailLine('📖 Sagesse', stats.sagesse),
+                detailLine('💪 Force', caracs.force),
+                detailLine('🔥 Intelligence', caracs.intelligence),
+                detailLine('💧 Chance', caracs.chance),
+                detailLine('🍃 Agilité', caracs.agilite),
+                detailLine('⭐ PA', stats.pa, (v) => `+${v}`),
+                detailLine('🟩 PM', stats.pm, (v) => `+${v}`),
+                detailLine('👁️ Portée', stats.portee),
+                detailLine('❗ Critique', stats.critique),
+                detailLine('💕 Soin', stats.soin),
+                detailLine('♾️ Tacle', stats.tacle),
+                detailLine('🐱 PI', stats.pi),
+                detailLine('➖⭐ Retrait PA', stats.retPA),
+                detailLine('➖🟩 Retrait PM', stats.retPM)
+            ].join('');
+
+            content.innerHTML = `
+                <div class="detail-image">
+                    <img src="${imagePath}" alt="${item.nom}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}'">
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">📦 Catégorie</span>
+                    <span class="detail-value">${item.categorie || '?'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">⭐ Niveau</span>
+                    <span class="detail-value">${item.level || 0}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">💰 Valeur</span>
+                    <span class="detail-value">${formatKamas(item.valeurK || 0)} Kamas</span>
+                </div>
+                ${characteristicsRows ? `<div class="detail-section"><h4>📊 Caractéristiques</h4>${characteristicsRows}</div>` : ''}
+                ${item.panoplie && item.panoplie.nom ? `<div class="detail-section"><h4>✨ Panoplie</h4><div class="detail-row"><span class="detail-label">Nom</span><span class="detail-value">${item.panoplie.nom}</span></div></div>` : ''}
+            `;
+            modal.classList.add('active');
+        }
+
+        window.closeDetailsModal = function() {
+            const modal = document.getElementById('modalDetails');
+            if (modal) modal.classList.remove('active');
+        };
+
+        function loadSet() {
+            const saved = localStorage.getItem('dofusEquipmentSet');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    const newSet = {};
+                    for (const [slotId, savedItem] of Object.entries(parsed)) {
+                        if (!savedItem) continue;
+                        const itemId = savedItem.id || savedItem;
+                        const fullItem = allEquipements.find(item => item.id === itemId);
+                        if (fullItem) {
+                            newSet[slotId] = fullItem;
+                        } else if (savedItem.nom) {
+                            newSet[slotId] = savedItem;
+                        }
+                    }
+                    currentSet = newSet;
+                } catch (e) {
+                    console.warn('Erreur chargement set:', e);
+                    currentSet = {};
+                }
+            } else {
+                currentSet = {};
+            }
+        }
+
+        function renderSlots() {
+            const leftDiv = document.getElementById('slotsLeft');
+            const rightDiv = document.getElementById('slotsRight');
+            const bottomDiv = document.getElementById('slotsBottom');
+            
+            if (!leftDiv) return;
+            
+            leftDiv.innerHTML = '';
+            rightDiv.innerHTML = '';
+            bottomDiv.innerHTML = '';
+
+            for (const slot of slotConfig) {
+                const item = currentSet[slot.id];
+                const tooltip = item ? `${item.nom} (Niv.${item.level})` : slot.nom;
+                
+                let innerHtml;
+                if (item) {
+                    const imageSrc = getImagePath(item);
+                    innerHtml = `
+                        <img src="${imageSrc}" alt="${item.nom}" onerror="this.onerror=null; this.src='${DEFAULT_IMAGE}'">
+                        <div class="item-tooltip">${tooltip}</div>
+                    `;
+                } else {
+                    innerHtml = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                            <span style="font-size: 32px;">${slot.emoji}</span>
+                            <span style="font-size: 8px; margin-top: 4px;">${slot.nom.substring(0, 8)}</span>
+                        </div>
+                        <div class="item-tooltip">${tooltip}</div>
+                    `;
+                }
+                
+                const html = `<div class="equipment-item" data-slot-id="${slot.id}" data-item-id="${item?.id || ''}">${innerHtml}</div>`;
+                
+                if (slot.side === 'left') leftDiv.innerHTML += html;
+                else if (slot.side === 'right') rightDiv.innerHTML += html;
+                else if (slot.side === 'bottom') bottomDiv.innerHTML += html;
+            }
+
+            document.querySelectorAll('.equipment-item').forEach(el => {
+                el.removeEventListener('click', handleSlotClick);
+                el.addEventListener('click', handleSlotClick);
+            });
+
+            updateStats();
+        }
+
+        function handleSlotClick(event) {
+            const slotDiv = event.currentTarget;
+            const slotId = slotDiv.dataset.slotId;
+            const itemId = slotDiv.dataset.itemId;
+            
+            if (itemId) {
+                const item = allEquipements.find(i => i.id === itemId) || currentSet[slotId];
+                if (item) {
+                    showDetailsModal(item);
+                } else {
+                    showToast(`Aucun détail disponible`, true);
+                }
+            } else {
+                const slot = slotConfig.find(s => s.id === slotId);
+                if (slot) {
+                    showToast(`💡 Emplacement ${slot.nom} vide. Allez dans "Mon Stuff" pour équiper un objet.`);
+                }
+            }
+        }
+
+        async function updateStats() {
+            equipmentTotals = {
+                vita: 0, prospection: 0, sagesse: 0, pa: 0, pm: 0, portee: 0,
+                force: 0, intelligence: 0, chance: 0, agilite: 0, puissance: 0,
+                initiative: 0, critique: 0, soin: 0, pi: 0, fuite: 0, esqPA: 0, esqPM: 0,
+                pods: 0, tacle: 0, retPA: 0, retPM: 0,
+                doNeutre: 0, doTerre: 0, doFeu: 0, doEau: 0, doAir: 0,
+                dommage: 0, doCri: 0, doPou: 0, doPerArme: 0, doSort: 0, doMelee: 0, doDist: 0,
+                resistance: { neutre: 0, terre: 0, feu: 0, eau: 0, air: 0, cri: 0, melee: 0, armes: 0, pou: 0, dist: 0 }
+            };
+            
+            for (const slot of slotConfig) {
+                const item = currentSet[slot.id];
+                if (item && item.stats) {
+                    const stats = item.stats;
+                    const caracs = stats.caracteristiques || {};
+                    const res = stats.resistance || {};
+                    
+                    equipmentTotals.vita += stats.vita || 0;
+                    equipmentTotals.prospection += stats.prospection || 0;
+                    equipmentTotals.sagesse += stats.sagesse || 0;
+                    equipmentTotals.pa += stats.pa || 0;
+                    equipmentTotals.pm += stats.pm || 0;
+                    equipmentTotals.portee += stats.portee || 0;
+                    equipmentTotals.force += caracs.force || 0;
+                    equipmentTotals.intelligence += caracs.intelligence || 0;
+                    equipmentTotals.chance += caracs.chance || 0;
+                    equipmentTotals.agilite += caracs.agilite || 0;
+                    equipmentTotals.puissance += caracs.puissance || 0;
+                    equipmentTotals.initiative += stats.initiative || 0;
+                    equipmentTotals.critique += stats.critique || 0;
+                    equipmentTotals.soin += stats.soin || 0;
+                    equipmentTotals.pi += stats.pi || 0;
+                    equipmentTotals.fuite += stats.fuite || 0;
+                    equipmentTotals.esqPA += stats.esqPA || 0;
+                    equipmentTotals.esqPM += stats.esqPM || 0;
+                    equipmentTotals.pods += stats.pods || 0;
+                    equipmentTotals.tacle += stats.tacle || 0;
+                    equipmentTotals.retPA += stats.retPA || 0;
+                    equipmentTotals.retPM += stats.retPM || 0;
+                    
+                    equipmentTotals.doNeutre += stats.doNeutre || 0;
+                    equipmentTotals.doTerre += stats.doTerre || 0;
+                    equipmentTotals.doFeu += stats.doFeu || 0;
+                    equipmentTotals.doEau += stats.doEau || 0;
+                    equipmentTotals.doAir += stats.doAir || 0;
+                    equipmentTotals.dommage += stats.dommage || 0;
+                    equipmentTotals.doCri += stats.doCri || 0;
+                    equipmentTotals.doPou += stats.doPou || 0;
+                    equipmentTotals.doPerArme += stats.doPerArme || 0;
+                    equipmentTotals.doSort += stats.doSort || 0;
+                    equipmentTotals.doMelee += stats.doMelee || 0;
+                    equipmentTotals.doDist += stats.doDist || 0;
+                    
+                    equipmentTotals.resistance.neutre += res.neutre || 0;
+                    equipmentTotals.resistance.terre += res.terre || 0;
+                    equipmentTotals.resistance.feu += res.feu || 0;
+                    equipmentTotals.resistance.eau += res.eau || 0;
+                    equipmentTotals.resistance.air += res.air || 0;
+                    equipmentTotals.resistance.cri += res.cri || 0;
+                    equipmentTotals.resistance.melee += res.melee || 0;
+                    equipmentTotals.resistance.armes += res.armes || 0;
+                    equipmentTotals.resistance.pou += res.pou || 0;
+                    equipmentTotals.resistance.dist += res.dist || 0;
+                }
+            }
+            
+            equipmentTotals.vita += parchotageStats.vita;
+            equipmentTotals.force += parchotageStats.force;
+            equipmentTotals.intelligence += parchotageStats.intelligence;
+            equipmentTotals.chance += parchotageStats.chance;
+            equipmentTotals.agilite += parchotageStats.agilite;
+            equipmentTotals.sagesse += parchotageStats.sagesse;
+            
+            const finalPA = baseStats.pa + equipmentTotals.pa + forgePA;
+            const finalPM = baseStats.pm + equipmentTotals.pm + forgePM;
+            const finalPortee = equipmentTotals.portee + forgePO;
+            
+            const equippedCountEl = document.getElementById('equippedCount');
+            if (equippedCountEl) equippedCountEl.textContent = `${Object.values(currentSet).filter(i => i).length}/${slotConfig.length}`;
+            
+            let totalKamas = 0;
+            for (const slot of slotConfig) {
+                const item = currentSet[slot.id];
+                if (item) totalKamas += item.valeurK || 0;
+            }
+            const totalKamasEl = document.getElementById('totalKamas');
+            if (totalKamasEl) totalKamasEl.textContent = formatKamas(totalKamas);
+            
+            const setElement = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+            
+            setElement('statVita', baseStats.vita + equipmentTotals.vita);
+            setElement('statPA', finalPA);
+            setElement('statPM', finalPM);
+            setElement('statPortee', finalPortee);
+            setElement('statInitiative', equipmentTotals.initiative);
+            setElement('statProspection', baseStats.prospection + equipmentTotals.prospection);
+            setElement('statSagesse', equipmentTotals.sagesse);
+            setElement('statPods', equipmentTotals.pods);
+            
+            setElement('statForce', equipmentTotals.force);
+            setElement('statIntelligence', equipmentTotals.intelligence);
+            setElement('statChance', equipmentTotals.chance);
+            setElement('statAgilite', equipmentTotals.agilite);
+            setElement('statPuissance', equipmentTotals.puissance);
+            setElement('statCritique', equipmentTotals.critique);
+            setElement('statSoin', equipmentTotals.soin);
+            setElement('statPI', equipmentTotals.pi);
+            
+            setElement('statTacle', equipmentTotals.tacle);
+            setElement('statFuite', equipmentTotals.fuite);
+            setElement('statEsqPA', equipmentTotals.esqPA);
+            setElement('statEsqPM', equipmentTotals.esqPM);
+            setElement('statRetPA', equipmentTotals.retPA);
+            setElement('statRetPM', equipmentTotals.retPM);
+            
+            setElement('statDoNeutre', equipmentTotals.doNeutre);
+            setElement('statDoTerre', equipmentTotals.doTerre);
+            setElement('statDoFeu', equipmentTotals.doFeu);
+            setElement('statDoEau', equipmentTotals.doEau);
+            setElement('statDoAir', equipmentTotals.doAir);
+            setElement('statDoCri', equipmentTotals.doCri);
+            setElement('statDoPou', equipmentTotals.doPou);
+            setElement('statDoPerArme', equipmentTotals.doPerArme);
+            setElement('statDoSort', equipmentTotals.doSort);
+            setElement('statDoMelee', equipmentTotals.doMelee);
+            setElement('statDoDist', equipmentTotals.doDist);
+            setElement('statDommage', equipmentTotals.dommage);
+            
+            setElement('resNeutre', equipmentTotals.resistance.neutre + '%');
+            setElement('resTerre', equipmentTotals.resistance.terre + '%');
+            setElement('resFeu', equipmentTotals.resistance.feu + '%');
+            setElement('resEau', equipmentTotals.resistance.eau + '%');
+            setElement('resAir', equipmentTotals.resistance.air + '%');
+            setElement('resCri', equipmentTotals.resistance.cri + '%');
+            setElement('resMelee', equipmentTotals.resistance.melee + '%');
+            setElement('resArmes', equipmentTotals.resistance.armes + '%');
+            setElement('resPou', equipmentTotals.resistance.pou + '%');
+            setElement('resDist', equipmentTotals.resistance.dist + '%');
+            
+            let warningMsg = '';
+            if (finalPA > MAX_PA) warningMsg += `⚠️ PA > ${MAX_PA} `;
+            if (finalPM > MAX_PM) warningMsg += `⚠️ PM > ${MAX_PM} `;
+            if (finalPortee > MAX_PO) warningMsg += `⚠️ PO > ${MAX_PO}`;
+            const warningEl = document.getElementById('forgeWarning');
+            if (warningEl) warningEl.textContent = warningMsg;
+
+            // Mettre à jour le footer
+            const footerEquippedCount = document.getElementById('footerEquippedCount');
+            if (footerEquippedCount) {
+                footerEquippedCount.textContent = Object.values(currentSet).filter(i => i).length;
+            }
+            
+            const lastUpdateSpan = document.getElementById('lastUpdate');
+            if (lastUpdateSpan) {
+                lastUpdateSpan.textContent = new Date().toLocaleString();
+            }
+        }
+
+        function resetCharacter() {
+            if (confirm('Êtes-vous sûr ? Cela réinitialisera tous les équipements.')) {
+                localStorage.setItem('dofusEquipmentSet', '{}');
+                currentSet = {};
+                renderSlots();
+                showToast('Personnage réinitialisé !');
+            }
+        }
+
+        function editCharacter() {
+            const name = prompt('Nom du personnage :', characterData.name || 'Mon Personnage');
+            if (name && name.trim()) {
+                characterData.name = name.trim();
+                localStorage.setItem('dofusCharacterData', JSON.stringify(characterData));
+                const nameEl = document.getElementById('characterName');
+                if (nameEl) nameEl.textContent = characterData.name;
+                showToast(`✅ Personnage renommé en "${characterData.name}"`);
+            }
+        }
+
+        function goToBaseDeDonnees() {
+            window.parent.location.href = 'test.html?tab=bdd';
+        }
+
+        function syncWithStuff() {
+            if (!allEquipements.length) return;
+            
+            const saved = localStorage.getItem('dofusEquipmentSet');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    let changed = false;
+                    
+                    for (const slot of slotConfig) {
+                        const oldItem = currentSet[slot.id];
+                        const newItemData = parsed[slot.id];
+                        const oldId = oldItem?.id || null;
+                        const newId = newItemData?.id || newItemData || null;
+                        if (oldId !== newId) {
+                            changed = true;
+                            break;
+                        }
+                    }
+                    
+                    if (changed) {
+                        const newSet = {};
+                        for (const [slotId, savedItem] of Object.entries(parsed)) {
+                            if (!savedItem) {
+                                newSet[slotId] = null;
+                                continue;
+                            }
+                            const itemId = savedItem.id || savedItem;
+                            const fullItem = allEquipements.find(item => item.id === itemId);
+                            newSet[slotId] = fullItem || (savedItem.nom ? savedItem : null);
+                        }
+                        currentSet = newSet;
+                        renderSlots();
+                        showToast('🔄 Stuff mis à jour');
+                    }
+                } catch (e) {
+                    console.warn('Erreur synchronisation:', e);
+                }
+            }
+        }
+
+        async function init() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-overlay';
+            loadingDiv.innerHTML = '⏳ Chargement des données...';
+            document.body.appendChild(loadingDiv);
+            
+            try {
+                await hydrateAllEquipementsFromDofusDB(equipementsData);
+                
+                allEquipements = [];
+                for (const cat in equipementsData) {
+                    if (Array.isArray(equipementsData[cat])) {
+                        allEquipements.push(...equipementsData[cat]);
+                    }
+                }
+                
+                console.log(`✅ ${allEquipements.length} équipements chargés`);
+                
+                loadSet();
+                loadForgeState();
+                loadParchotageState();
+                renderSlots();
+                
+                const forgePACheck = document.getElementById('forgePACheck');
+                const forgePMCheck = document.getElementById('forgePMCheck');
+                const forgePOCheck = document.getElementById('forgePOCheck');
+                
+                if (forgePACheck) forgePACheck.addEventListener('change', toggleForgePA);
+                if (forgePMCheck) forgePMCheck.addEventListener('change', toggleForgePM);
+                if (forgePOCheck) forgePOCheck.addEventListener('change', toggleForgePO);
+                
+                const editBtn = document.getElementById('editCharacterBtn');
+                const resetBtn = document.getElementById('resetCharacterBtn');
+                const goToBddBtn = document.getElementById('goToBddBtn');
+                
+                if (editBtn) editBtn.addEventListener('click', editCharacter);
+                if (resetBtn) resetBtn.addEventListener('click', resetCharacter);
+                if (goToBddBtn) goToBddBtn.addEventListener('click', goToBaseDeDonnees);
+                
+                const nameEl = document.getElementById('characterName');
+                if (nameEl) nameEl.textContent = characterData.name || 'Mon Personnage';
+                
+                const levelEl = document.getElementById('characterLevel');
+                if (levelEl) levelEl.textContent = characterData.level || '200';
+                
+                // Option pour fixer le panneau gauche
+                const fixCheckboxOption = document.getElementById('fixLeftPanelOption');
+                const equipmentWrapper = document.querySelector('.equipment-wrapper');
+                
+                if (fixCheckboxOption && equipmentWrapper) {
+                    const savedFixState = localStorage.getItem('dofusFixLeftPanel');
+                    if (savedFixState === 'true') {
+                        fixCheckboxOption.checked = true;
+                        equipmentWrapper.style.position = 'sticky';
+                        equipmentWrapper.style.top = '20px';
+                    } else {
+                        equipmentWrapper.style.position = 'sticky';
+                        equipmentWrapper.style.top = '20px';
+                    }
+                    
+                    fixCheckboxOption.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            equipmentWrapper.style.position = 'sticky';
+                            equipmentWrapper.style.top = '20px';
+                            localStorage.setItem('dofusFixLeftPanel', 'true');
+                        } else {
+                            equipmentWrapper.style.position = 'relative';
+                            equipmentWrapper.style.top = 'auto';
+                            localStorage.setItem('dofusFixLeftPanel', 'false');
+                        }
+                    });
+                }
+                
+                setInterval(syncWithStuff, 3000);
+                window.addEventListener('storage', function(e) {
+                    if (e.key === 'dofusEquipmentSet') syncWithStuff();
+                    if (e.key === 'dofusForgePA' || e.key === 'dofusForgePM' || e.key === 'dofusForgePO') {
+                        loadForgeState();
+                        updateStats();
+                    }
+                    if (e.key === 'dofusParchotage') {
+                        loadParchotageState();
+                        updateStats();
+                    }
+                });
+                
+                showToast('✅ Personnage chargé avec succès');
+            } catch (error) {
+                console.error('Erreur initialisation:', error);
+                showToast('❌ Erreur chargement des données', true);
+            } finally {
+                loadingDiv.remove();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
