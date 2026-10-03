@@ -344,6 +344,51 @@ body {
     box-shadow: 0 0 12px rgba(255, 217, 102, 0.25);
 }
 
+.stuff-character-display .equipment-slot-actions {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 3;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+}
+
+.stuff-character-display .equipment-item:hover .equipment-slot-actions,
+.stuff-character-display .equipment-item:focus-within .equipment-slot-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+.stuff-character-display .equipment-slot-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid rgba(255, 216, 155, 0.5);
+    border-radius: 4px;
+    background: rgba(10, 10, 21, 0.9);
+    color: #ffd89b;
+    cursor: pointer;
+    font-size: 9px;
+    line-height: 1;
+}
+
+.stuff-character-display .equipment-slot-actions button:hover {
+    background: rgba(255, 216, 155, 0.22);
+}
+
+@media (hover: none) {
+    .stuff-character-display .equipment-slot-actions {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
 .stuff-character-display .equipment-item img {
     width: 90%;
     height: 90%;
