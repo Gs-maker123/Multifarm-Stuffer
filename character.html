@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personnage - Dofus Equipements</title>
-     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
     <link rel="stylesheet" href="test.css">
     <style>
         .character-page {
@@ -61,24 +60,35 @@
             color: #ffd89b;
         }
 
+        :root {
+            --slot-gap: clamp(8px, 1.2vw, 20px);
+            --slot-size: clamp(60px, 5vw, 100px);
+            --character-width: clamp(180px, 20vw, 280px);
+            --character-height: clamp(260px, 30vw, 400px);
+        }
+
         /* Layout principal - Stats à droite, équipements à gauche fixe */
         .main-content {
             display: flex;
             flex-direction: row;
-            gap: 30px;
+            gap: clamp(12px, 2vw, 30px);
             align-items: flex-start;
             justify-content: center;
             position: relative;
+            width: 100%;
         }
 
         .equipment-wrapper {
-            flex: 1;
-            min-width: 400px;
+            flex: 1 1 0;
+            min-width: 0;
+            width: min(100%, 760px);
             position: sticky;
             top: 20px;
             align-self: flex-start;
-            max-height: calc(100vh - 40px);
+            max-height: calc(100vh - 90px);
             overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 20px;
         }
 
         .equipment-wrapper::-webkit-scrollbar {
@@ -96,11 +106,14 @@
         }
 
         .stats-wrapper {
-            flex: 1.2;
-            min-width: 500px;
-            max-height: calc(100vh - 40px);
+            flex: 1.2 1 0;
+            min-width: 0;
+            width: min(100%, 900px);
+            max-height: calc(100vh - 90px);
             overflow-y: auto;
+            overflow-x: hidden;
             scroll-behavior: smooth;
+            padding-bottom: 20px;
         }
 
         .stats-wrapper::-webkit-scrollbar {
@@ -124,36 +137,41 @@
         .display-wrapper {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: clamp(10px, 2vw, 20px);
+            width: 100%;
         }
 
         .equipment-row {
             display: flex;
             flex-direction: row;
-            gap: 20px;
+            gap: var(--slot-gap);
             align-items: flex-start;
             justify-content: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            width: 100%;
         }
 
         .equipment-column {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: var(--slot-gap);
             align-items: center;
+            min-width: 0;
+            flex: 0 1 auto;
         }
 
         .character-center-large {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            flex: 0 0 auto;
+            gap: clamp(12px, 2vw, 20px);
+            flex: 0 1 auto;
+            min-width: 0;
         }
 
         .character-image-large {
-            width: 280px;
-            height: 400px;
+            width: var(--character-width);
+            height: var(--character-height);
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             border: 2px solid #ffd966;
@@ -193,8 +211,8 @@
         }
 
         .equipment-item {
-            width: 100px;
-            height: 100px;
+            width: var(--slot-size);
+            height: var(--slot-size);
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
             border: 1px solid rgba(255, 217, 102, 0.3);
@@ -205,7 +223,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
-            flex: 0 0 100px;
+            flex: 0 0 auto;
         }
 
         .equipment-item:hover {
@@ -224,9 +242,11 @@
         .equipment-bottom {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: var(--slot-gap);
             flex-wrap: wrap;
-            margin-top: 30px;
+            margin-top: clamp(12px, 2vw, 30px);
+            width: 100%;
+            max-width: 100%;
         }
 
         .stats-panel {
@@ -613,11 +633,14 @@
                 flex-direction: column;
             }
             .equipment-wrapper, .stats-wrapper {
-                min-width: auto;
+                min-width: 0;
                 width: 100%;
                 position: relative;
                 top: 0;
                 max-height: none;
+            }
+            .equipment-row {
+                flex-wrap: wrap;
             }
         }
 
@@ -1673,11 +1696,6 @@
             }
         }
 
-function handleImageError(img) {
-    img.onerror = null;
-    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 300'%3E%3Crect width='200' height='300' fill='%232a2a3e'/%3E%3Ccircle cx='100' cy='80' r='40' fill='%23ffd89b'/%3E%3Crect x='70' y='130' width='60' height='80' fill='%234a6a8a'/%3E%3Ctext x='100' y='200' font-size='14' text-anchor='middle' fill='%23aaa'%3E🧙%3C/text%3E%3C/svg%3E";
-}        
-        
         init();
     </script>
 </body>
