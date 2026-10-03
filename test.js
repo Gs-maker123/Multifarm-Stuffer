@@ -889,7 +889,7 @@ function displayEquippedCharacter() {
                 ? `<label class="legendary-status-control">Statut<select class="legendary-status-select" data-status-key="${escapeHtml(statusKey)}"><option value="normal">Normal</option><option value="legendary" ${legendaryStatuses[statusKey] === 'legendary' ? 'selected' : ''}>Légendaire</option></select></label>`
                 : '';
             const content = item
-                ? `<img src="${escapeHtml(getImagePath(item))}" alt="${escapeHtml(item.nom)}" onerror="this.src='assets/images/equipements/default.png'">`
+                ? `<img src="${escapeHtml(getImagePath(item))}" alt="${escapeHtml(item.nom)}" onerror="this.src='assets/images/equipements/default.png'"><div class="equipment-slot-actions"><button type="button" data-equipment-action="details" title="Détails de ${escapeHtml(item.nom)}" aria-label="Détails de ${escapeHtml(item.nom)}">🔍</button><button type="button" data-equipment-action="remove" title="Déséquiper ${escapeHtml(item.nom)}" aria-label="Déséquiper ${escapeHtml(item.nom)}">−</button></div>`
                 : `<div class="equipment-item-empty-content"><span style="font-size: 24px;">${slot.emoji}</span><span style="font-size: 8px; margin-top: 3px;">${escapeHtml(label)}</span></div>`;
 
             return `<div class="equipment-item" data-slot-id="${slot.id}" title="${escapeHtml(item?.nom || slot.nom)}">${content}<div class="item-tooltip">${escapeHtml(item?.nom || slot.nom)}</div></div>${statusControl}`;
@@ -926,6 +926,18 @@ function displayEquippedCharacter() {
 
     if (!display.dataset.eventsBound) {
         display.addEventListener('click', event => {
+            const equipmentAction = event.target.closest('[data-equipment-action]');
+            if (equipmentAction) {
+                const slotId = equipmentAction.closest('.equipment-item')?.dataset.slotId;
+                const item = currentSet[slotId];
+                if (equipmentAction.dataset.equipmentAction === 'details' && item) {
+                    showDetailsModalFromId(item.id);
+                } else if (equipmentAction.dataset.equipmentAction === 'remove' && item) {
+                    unequipItem(slotId);
+                }
+                return;
+            }
+
             const equipmentItem = event.target.closest('.equipment-item');
             if (equipmentItem) {
                 const slotId = equipmentItem.dataset.slotId;
