@@ -898,7 +898,31 @@ function displayEquippedCharacter() {
 
     const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
     const characterImage = document.getElementById('stuffCharacterImg');
+    const characterName = document.getElementById('stuffCharacterName');
+    const characterNameEditor = document.getElementById('stuffCharacterRename');
+    const characterNameInput = document.getElementById('stuffCharacterNameInput');
     if (characterImage) characterImage.alt = characterData.name || 'Personnage';
+    if (characterName) characterName.textContent = characterData.name || 'Mon Personnage';
+
+    const cancelCharacterRename = () => {
+        if (characterNameEditor) characterNameEditor.hidden = true;
+        if (characterName) characterName.hidden = false;
+    };
+    const saveCharacterRename = () => {
+        const name = characterNameInput?.value.trim();
+        if (!name) {
+            characterNameInput?.focus();
+            return;
+        }
+
+        const data = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+        data.name = name;
+        localStorage.setItem('dofusCharacterData', JSON.stringify(data));
+        if (characterImage) characterImage.alt = name;
+        if (characterName) characterName.textContent = name;
+        cancelCharacterRename();
+        showToast(`✅ Personnage renommé en "${name}"`);
+    };
 
     if (!display.dataset.eventsBound) {
         display.addEventListener('click', event => {
@@ -913,13 +937,23 @@ function displayEquippedCharacter() {
 
             if (event.target.closest('#stuffEditCharacterBtn')) {
                 const data = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
-                const name = prompt('Nom du personnage :', data.name || 'Mon Personnage');
-                if (name && name.trim()) {
-                    data.name = name.trim();
-                    localStorage.setItem('dofusCharacterData', JSON.stringify(data));
-                    if (characterImage) characterImage.alt = data.name;
-                    showToast(`✅ Personnage renommé en "${data.name}"`);
+                if (characterName) characterName.hidden = true;
+                if (characterNameEditor) characterNameEditor.hidden = false;
+                if (characterNameInput) {
+                    characterNameInput.value = data.name || 'Mon Personnage';
+                    characterNameInput.focus();
+                    characterNameInput.select();
                 }
+                return;
+            }
+
+            if (event.target.closest('#stuffSaveCharacterNameBtn')) {
+                saveCharacterRename();
+                return;
+            }
+
+            if (event.target.closest('#stuffCancelCharacterNameBtn')) {
+                cancelCharacterRename();
                 return;
             }
 
@@ -939,6 +973,15 @@ function displayEquippedCharacter() {
             if (select.value === 'legendary') legendaryStatuses[statusKey] = 'legendary';
             else delete legendaryStatuses[statusKey];
             localStorage.setItem(legendaryStatusStorageKey, JSON.stringify(legendaryStatuses));
+        });
+        display.addEventListener('keydown', event => {
+            if (event.target.id !== 'stuffCharacterNameInput') return;
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                saveCharacterRename();
+            } else if (event.key === 'Escape') {
+                cancelCharacterRename();
+            }
         });
         display.dataset.eventsBound = 'true';
     }
