@@ -5,8 +5,10 @@ const DOFUSDB_API_BASE = 'https://api.dofusdb.fr';
 const PAGE_SIZE = 50;
 const HYDRATE_CONCURRENCY = 6;
 const CATALOG_CACHE_KEY = 'dofusdbCatalogCache';
-const CATALOG_CACHE_VERSION = 1;
+const CATALOG_CACHE_VERSION = 4;
 const CATALOG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const PANOPLIE_CATALOG_CACHE_KEY = 'dofusdbPanoplieCatalogCache';
+const PANOPLIE_CATALOG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 const EFFECT_ID_MAP = {
   vita: 125,
@@ -29,21 +31,29 @@ const EFFECT_ID_MAP = {
   esqPM: 163,
   retPA: 410,
   retPM: 411,
-  puissance: 142,
+  puissance: 138,
   initiative: 152,
-  doCri: 77,
+  doCri: 418,
   doPou: 79,
-  dommage: 138,
-  doPerArme: 180,
-  doSort: 181,
-  doMelee: 225,
-  doDist: 226,
+  dommage: 112,
+  doPerArme: 1144,
+  doSort: 1054,
+  doMelee: 2800,
+  doDist: 2804,
   doNeutre: 248,
   doTerre: 131,
   doFeu: 130,
   doEau: 133,
   doAir: 132,
   pi: 182
+};
+
+const NEGATIVE_EFFECT_ID_MAP = {
+  puissance: 186,
+  doCri: 419,
+  dommage: 145,
+  doMelee: 2801,
+  doDist: 2805
 };
 
 const RESISTANCE_EFFECTS = {
@@ -134,9 +144,11 @@ function extractPanoplieInfo(remoteItem) {
   // Vérifier si l'item a une panoplie directement
   if (remoteItem.panoplie) {
     if (typeof remoteItem.panoplie === 'object') {
+      const id = remoteItem.panoplie.id || (remoteItem.itemSetId > 0 ? remoteItem.itemSetId : undefined);
       return {
-        id: remoteItem.panoplie.id,
-        nom: getLocalizedText(remoteItem.panoplie.nom) || `Panoplie #${remoteItem.panoplie.id}`
+        id,
+        nom: getLocalizedText(remoteItem.panoplie.nom) || (id ? `Panoplie #${id}` : null),
+        bonus: remoteItem.panoplie.bonus
       };
     }
     if (typeof remoteItem.panoplie === 'number') {
@@ -145,6 +157,13 @@ function extractPanoplieInfo(remoteItem) {
         nom: null
       };
     }
+  }
+
+  if (Number(remoteItem.itemSetId) > 0) {
+    return {
+      id: Number(remoteItem.itemSetId),
+      nom: `Panoplie #${remoteItem.itemSetId}`
+    };
   }
   
   // Vérifier dans les ancestors
@@ -270,8 +289,12 @@ function buildStatsFromRemoteItem(remoteItem) {
   // Mapper chaque effet connu
   Object.entries(EFFECT_ID_MAP).forEach(([key, effectId]) => {
     const effect = getEffect(effects, effectId);
-    if (!effect) return;
-    const value = normalizeEffectValue(effect);
+    const negativeEffect = NEGATIVE_EFFECT_ID_MAP[key]
+      ? getEffect(effects, NEGATIVE_EFFECT_ID_MAP[key])
+      : null;
+    if (!effect && !negativeEffect) return;
+    const value = (effect ? normalizeEffectValue(effect) : 0)
+      - (negativeEffect ? Math.abs(normalizeEffectValue(negativeEffect)) : 0);
     
     if (key === 'force' || key === 'intelligence' || key === 'chance' || key === 'agilite' || key === 'puissance') {
       stats.caracteristiques[key] = value;
@@ -327,6 +350,7 @@ function buildLocalItem(remoteItem) {
     id: generatedId,
     imageId: iconId,
     dofusdbId: remoteItem.id,
+    hasRecipe: Boolean(remoteItem.hasRecipe),
     nom: getLocalizedName(remoteItem),
     categorie,
     level: remoteItem.level || 1,
@@ -550,6 +574,9 @@ export async function hydrateCoiffesFromDofusDB(targetEquipementsData = null) {
 
 // Cache des bonus de panoplies
 let panoplieBonusesCache = new Map();
+let effectDescriptionsCache = new Map();
+let itemRecipesCache = new Map();
+let panoplieCatalogRequest = null;
 
 /**
  * Récupère les bonus d'une panoplie depuis l'API
@@ -560,8 +587,11 @@ async function fetchPanoplieBonus(panoplieId) {
     }
     
     try {
-        const response = await fetch(`${DOFUSDB_API_BASE}/panoplies/${panoplieId}`);
-        if (!response.ok) return null;
+        const response = await fetch(`${DOFUSDB_API_BASE}/item-sets/${panoplieId}?lang=fr`);
+        if (!response.ok) {
+          panoplieBonusesCache.set(panoplieId, null);
+          return null;
+        }
         const data = await response.json();
         panoplieBonusesCache.set(panoplieId, data);
         return data;
@@ -570,6 +600,167 @@ async function fetchPanoplieBonus(panoplieId) {
         return null;
     }
 }
+
+  export async function getPanoplieItems(panoplieId) {
+    const data = await fetchPanoplieBonus(panoplieId);
+    if (!data) return null;
+
+    return {
+      name: getLocalizedText(data.name) || `Panoplie #${panoplieId}`,
+      items: (data.items || []).map(item => ({
+        id: item.id,
+        name: getLocalizedText(item.name) || `Item #${item.id}`,
+        level: item.level || 0
+      }))
+    };
+  }
+
+    export async function getPanoplieCatalog() {
+      if (panoplieCatalogRequest) return panoplieCatalogRequest;
+
+      panoplieCatalogRequest = (async () => {
+        try {
+          const cached = JSON.parse(localStorage.getItem(PANOPLIE_CATALOG_CACHE_KEY) || 'null');
+          if (cached?.sets?.length && Date.now() - cached.timestamp < PANOPLIE_CATALOG_CACHE_TTL_MS) {
+            return cached.sets;
+          }
+        } catch {
+          // Ignore invalid local cache and fetch a fresh catalog.
+        }
+
+        const pageSize = 50;
+        const fetchPage = async (skip) => {
+          const params = new URLSearchParams([
+            ['$limit', String(pageSize)],
+            ['$skip', String(skip)],
+            ['$select[]', 'id'],
+            ['$select[]', 'name'],
+            ['lang', 'fr']
+          ]);
+          const response = await fetch(`${DOFUSDB_API_BASE}/item-sets?${params}`);
+          if (!response.ok) throw new Error(`DofusDB item-sets failed: ${response.status}`);
+          return response.json();
+        };
+
+        try {
+          const firstPage = await fetchPage(0);
+          const offsets = Array.from(
+            { length: Math.ceil(firstPage.total / pageSize) - 1 },
+            (_, index) => (index + 1) * pageSize
+          );
+          const pages = [firstPage];
+          let nextPage = 0;
+          await Promise.all(Array.from({ length: Math.min(4, offsets.length) }, async () => {
+            while (nextPage < offsets.length) {
+              const offset = offsets[nextPage++];
+              pages.push(await fetchPage(offset));
+            }
+          }));
+
+          const sets = pages.flatMap(page => page.data || [])
+            .map(set => ({ id: set.id, name: getLocalizedText(set.name) || `Panoplie #${set.id}` }))
+            .filter(set => Number(set.id) > 0)
+            .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+
+          localStorage.setItem(PANOPLIE_CATALOG_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), sets }));
+          return sets;
+        } finally {
+          panoplieCatalogRequest = null;
+        }
+      })();
+
+      return panoplieCatalogRequest;
+    }
+
+  async function fetchEffectDescription(effectId) {
+    if (effectDescriptionsCache.has(effectId)) {
+      return effectDescriptionsCache.get(effectId);
+    }
+
+    const request = (async () => {
+      try {
+        const response = await fetch(`${DOFUSDB_API_BASE}/effects/${effectId}?lang=fr`);
+        if (!response.ok) return '';
+        const data = await response.json();
+        return getLocalizedText(data.description);
+      } catch (error) {
+        console.warn(`Erreur chargement effet ${effectId}:`, error);
+        return '';
+      }
+    })();
+    effectDescriptionsCache.set(effectId, request);
+    return request;
+  }
+
+  export async function getItemRecipeDetails(itemId) {
+    if (itemRecipesCache.has(itemId)) {
+      return itemRecipesCache.get(itemId);
+    }
+
+    const request = (async () => {
+      try {
+        const response = await fetch(`${DOFUSDB_API_BASE}/recipes/${itemId}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return {
+          itemName: getLocalizedText(data.result?.name),
+          job: getLocalizedText(data.job?.name) || 'Métier inconnu',
+          level: data.resultLevel || data.result?.level || 0,
+          ingredients: (data.ingredients || []).map((ingredient, index) => ({
+            name: getLocalizedText(ingredient.name) || `Ressource ${ingredient.id}`,
+            quantity: data.quantities?.[index] || 1
+          }))
+        };
+      } catch (error) {
+        console.warn(`Erreur chargement recette de l'item ${itemId}:`, error);
+        return null;
+      }
+    })();
+
+    itemRecipesCache.set(itemId, request);
+    return request;
+  }
+
+  function formatPanoplieEffect(description, effect) {
+    const from = effect.from ?? effect.value ?? 0;
+    const to = effect.to ?? 0;
+    const value = to && to !== from ? `${from} à ${to}` : String(from);
+    const pluralValue = Number(to || from);
+    const template = description || `Effet #${effect.effectId}`;
+    return template
+      .replace(/#1\{\{[\s\S]*?\}\}#2/g, value)
+      .replace(/#1/g, String(from))
+      .replace(/#2/g, String(to || from))
+      .replace(/\{\{~ps\}\}/g, pluralValue > 1 ? 's' : '')
+      .replace(/\{\{~zs\}\}/g, '')
+      .replace(/\{\{~[^}]*\}\}/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  export async function getPanoplieBonusDetails(panoplieId) {
+    const data = await fetchPanoplieBonus(panoplieId);
+    if (!data) return null;
+
+    const tiers = Array.isArray(data.effects)
+      ? data.effects
+        .map((effects, index) => ({ pieces: index + 1, effects }))
+        .filter(tier => tier.pieces >= 2 && tier.effects?.length)
+      : (data.bonus || []).map(tier => ({ pieces: tier.amount, effects: tier.effects || [] }));
+
+    const bonuses = await Promise.all(tiers.map(async tier => ({
+      pieces: tier.pieces,
+      effects: await Promise.all(tier.effects.map(async effect => {
+        const description = effect.effectId ? await fetchEffectDescription(effect.effectId) : '';
+        return formatPanoplieEffect(description, effect);
+      }))
+    })));
+
+    return {
+      name: getLocalizedText(data.name) || `Panoplie #${panoplieId}`,
+      bonuses
+    };
+  }
 
 /**
  * Calcule les bonus de panoplies pour un set d'équipements
@@ -592,20 +783,20 @@ export async function calculatePanoplieBonuses(currentSet, slotsConfig) {
         resistance: {}
     };
     
-    // Pour chaque panoplie avec au moins 2 pièces
+    // Seul le palier le plus élevé atteint s'applique pour chaque panoplie.
     for (const [panoplieId, count] of panoplieCounts) {
         if (count >= 2) {
             const panoplieData = await fetchPanoplieBonus(panoplieId);
-            if (panoplieData && panoplieData.bonus) {
-                // Parcourir les bonus par palier
-                for (const bonus of panoplieData.bonus) {
-                    const requiredPieces = bonus.amount || 0;
-                    if (requiredPieces <= count && bonus.effects) {
-                        for (const effect of bonus.effects) {
-                            applyBonusEffect(totalBonuses, effect);
-                        }
-                    }
-                }
+        const tiers = Array.isArray(panoplieData?.effects)
+          ? panoplieData.effects.map((effects, index) => ({ amount: index + 1, effects }))
+          : (panoplieData?.bonus || []);
+        const applicableTier = tiers
+          .filter(tier => (tier.amount || 0) <= count && tier.effects?.length)
+          .at(-1);
+        if (applicableTier) {
+          for (const effect of applicableTier.effects) {
+            applyBonusEffect(totalBonuses, effect);
+          }
             }
         }
     }
@@ -615,7 +806,61 @@ export async function calculatePanoplieBonuses(currentSet, slotsConfig) {
 
 function applyBonusEffect(bonuses, effect) {
     const effectName = effect.effectName || effect.name || '';
-    const value = effect.value || 0;
+  const rawValue = Number(effect.value ?? (effect.to && effect.to !== 0 ? effect.to : effect.from) ?? 0);
+  const negativeEffectIds = new Set([145, 186, 419, 421, 423, 425, 427, 429, 431, 2801, 2805]);
+  const value = negativeEffectIds.has(effect.effectId) ? -Math.abs(rawValue) : rawValue;
+
+  const effectIdMapping = {
+    125: { type: 'stats', field: 'vita' },
+    118: { type: 'caracteristiques', field: 'force' },
+    126: { type: 'caracteristiques', field: 'intelligence' },
+    119: { type: 'caracteristiques', field: 'agilite' },
+    120: { type: 'caracteristiques', field: 'chance' },
+    176: { type: 'stats', field: 'prospection' },
+    124: { type: 'stats', field: 'sagesse' },
+    117: { type: 'stats', field: 'portee' },
+    111: { type: 'stats', field: 'pa' },
+    128: { type: 'stats', field: 'pm' },
+    115: { type: 'stats', field: 'critique' },
+    112: { type: 'stats', field: 'dommage' },
+    178: { type: 'stats', field: 'soin' },
+    753: { type: 'stats', field: 'tacle' },
+    752: { type: 'stats', field: 'fuite' },
+    761: { type: 'stats', field: 'fuite' },
+    160: { type: 'stats', field: 'esqPA' },
+    163: { type: 'stats', field: 'esqPM' },
+    410: { type: 'stats', field: 'retPA' },
+    411: { type: 'stats', field: 'retPM' },
+    138: { type: 'caracteristiques', field: 'puissance' },
+    186: { type: 'caracteristiques', field: 'puissance' },
+    418: { type: 'stats', field: 'doCri' },
+    419: { type: 'stats', field: 'doCri' },
+    79: { type: 'stats', field: 'doPou' },
+    112: { type: 'stats', field: 'dommage' },
+    145: { type: 'stats', field: 'dommage' },
+    1144: { type: 'stats', field: 'doPerArme' },
+    1054: { type: 'stats', field: 'doSort' },
+    2800: { type: 'stats', field: 'doMelee' },
+    2801: { type: 'stats', field: 'doMelee' },
+    2804: { type: 'stats', field: 'doDist' },
+    2805: { type: 'stats', field: 'doDist' },
+    248: { type: 'stats', field: 'doNeutre' },
+    131: { type: 'stats', field: 'doTerre' },
+    130: { type: 'stats', field: 'doFeu' },
+    133: { type: 'stats', field: 'doEau' },
+    132: { type: 'stats', field: 'doAir' },
+    430: { type: 'stats', field: 'doNeutre' },
+    431: { type: 'stats', field: 'doNeutre' },
+    422: { type: 'stats', field: 'doTerre' },
+    423: { type: 'stats', field: 'doTerre' },
+    424: { type: 'stats', field: 'doFeu' },
+    425: { type: 'stats', field: 'doFeu' },
+    426: { type: 'stats', field: 'doEau' },
+    427: { type: 'stats', field: 'doEau' },
+    428: { type: 'stats', field: 'doAir' },
+    429: { type: 'stats', field: 'doAir' },
+    421: { type: 'resistance', field: 'cri' }
+  };
     
     const mapping = {
         'Vitalité': { type: 'stats', field: 'vita' },
@@ -641,7 +886,10 @@ function applyBonusEffect(bonuses, effect) {
         'Résistance Air': { type: 'resistance', field: 'air' }
     };
     
-    let map = mapping[effectName];
+    let map = effectIdMapping[effect.effectId] || mapping[effectName];
+    if (!map && RESISTANCE_EFFECTS[effect.effectId]) {
+      map = { type: 'resistance', field: RESISTANCE_EFFECTS[effect.effectId] };
+    }
     if (!map) {
         // Chercher par correspondance approximative
         const lowerName = effectName.toLowerCase();
