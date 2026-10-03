@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dofus Equipements - Gestionnaire de Stuff</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
     <link rel="stylesheet" href="test.css">
 </head>
 <body>
@@ -22,8 +21,55 @@
         <!-- TAB PROFIL -->
         <div id="tab-profil" class="tab-content active">
             <div class="main-layout">
-                <div class="equipped-slots"><h2>📦 Équipement du personnage</h2><div id="equippedSlotsList"></div></div>
+                <div class="equipped-slots">
+                    <h2>📦 Équipement du personnage</h2>
+                    <div id="equippedSlotsList"></div>
+                    <div class="template-panel">
+                        <h3>💾 Templates de stuff</h3>
+                        <div class="template-controls">
+                            <input type="text" id="templateName" placeholder="Nom du template">
+                            <div class="template-buttons">
+                                <button id="saveTemplateBtn">💾 Sauvegarder</button>
+                                <button id="updateTemplateBtn" style="background: linear-gradient(135deg, #ffa500, #cc8400);">✏️ Modifier</button>
+                            </div>
+                            <select id="loadTemplateSelect">
+                                <option value="">Charger un template...</option>
+                            </select>
+                            <button id="deleteTemplateBtn">🗑️ Supprimer</button>
+                        </div>
+                        <div id="templateStatus" class="template-status"></div>
+                    </div>
+                    <div class="total-value-box"><span>💰 Valeur totale: <span id="totalValue">0</span> Kamas</span></div>
+                    <div class="character-header-info stuff-character-info">
+                        <div class="info-group">
+                            <span class="info-label">Niveau</span>
+                            <span class="info-value" id="stuffCharacterLevel">200</span>
+                        </div>
+                        <div class="info-group">
+                            <span class="info-label">Équipements</span>
+                            <span class="info-value" id="stuffEquippedCount">0/16</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="stats-center">
+                    <div class="stuff-character-display" id="stuffDisplayWrapper">
+                        <div class="display-wrapper">
+                            <div class="equipment-row">
+                                <div class="equipment-column" id="stuffSlotsLeft"></div>
+                                <div class="character-center-large">
+                                    <div class="character-image-large">
+                                        <img id="stuffCharacterImg" src="assets/images/characters/dofus/0-0.png" alt="Personnage">
+                                    </div>
+                                    <div class="character-actions">
+                                        <button id="stuffEditCharacterBtn">✏️ Nommer</button>
+                                        <button id="stuffResetCharacterBtn">🎯 Réinitialiser</button>
+                                    </div>
+                                </div>
+                                <div class="equipment-column" id="stuffSlotsRight"></div>
+                            </div>
+                            <div class="equipment-bottom" id="stuffSlotsBottom"></div>
+                        </div>
+                    </div>
                     <div class="main-stats-line">
                         <div class="main-stat"><div class="main-stat-value" id="sumVita">0</div><div class="main-stat-label">❤️PdV</div></div>
                         <div class="main-stat"><div class="main-stat-value" id="sumPP">0</div><div class="main-stat-label">🔍PP</div></div>
@@ -177,24 +223,6 @@
                         </div>
                     </div>
 
-                    <!-- SECTION TEMPLATES -->
-                    <div class="template-panel">
-                        <h3>💾 Templates de stuff</h3>
-                        <div class="template-controls">
-                            <input type="text" id="templateName" placeholder="Nom du template">
-                            <div class="template-buttons">
-                                <button id="saveTemplateBtn">💾 Sauvegarder</button>
-                                <button id="updateTemplateBtn" style="background: linear-gradient(135deg, #ffa500, #cc8400);">✏️ Modifier</button>
-                            </div>
-                            <select id="loadTemplateSelect">
-                                <option value="">Charger un template...</option>
-                            </select>
-                            <button id="deleteTemplateBtn">🗑️ Supprimer</button>
-                        </div>
-                        <div id="templateStatus" class="template-status"></div>
-                    </div>
-
-                    <div class="total-value-box"><span>💰 Valeur totale: <span id="totalValue">0</span> Kamas</span></div>
                 </div>
                 <div class="inventory">
                     <div class="inventory-header">
@@ -204,6 +232,9 @@
                             <select id="levelFilter"><option value="">Tous niveaux</option><option value="1">1-99</option><option value="2">100-149</option><option value="3">150-199</option><option value="4">200</option></select>
                         </div>
                         <div class="categories-filter" id="categoriesFilter"><button class="cat-filter active" data-cat="all">Toutes catégories</button></div>
+                        <select class="category-filter-select" id="categoryFilterSelect" aria-label="Filtrer par catégorie">
+                            <option value="all">Toutes catégories</option>
+                        </select>
                         <div class="visible-count">Visible: <span id="visibleCount">0</span></div>
                     </div>
                     <div class="inventory-list" id="inventoryList"><div style="text-align:center;padding:40px;">Chargement...</div></div>
@@ -239,9 +270,14 @@
                     </select>
                     <input type="number" id="searchStatMin" placeholder="Min" style="width: 80px;">
                     <input type="number" id="searchStatMax" placeholder="Max" style="width: 80px;">
-                    <select id="searchPanoplieBdd">
+                    <div class="panoply-search-control">
+                        <input type="search" id="searchPanoplieInput" placeholder="Panoplie · 3 lettres minimum" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="panoplieSuggestions">
+                        <div id="panoplieSuggestions" class="panoply-suggestions" role="listbox" hidden></div>
+                    </div>
+                    <select id="searchPanoplieBdd" hidden aria-hidden="true" tabindex="-1">
                         <option value="">Toutes panoplies</option>
                     </select>
+                    <button type="button" id="addPanoplieToInventoryBtn" disabled>＋ Ajouter la panoplie à l’inventaire</button>
                     <div class="display-mode-group" aria-label="Choisir le mode d'affichage">
                         <button type="button" class="display-mode-btn active" data-mode="card" aria-label="Mode carte">
                             <span class="display-mode-label">🖼️</span>
@@ -265,7 +301,7 @@
 
         <!-- TAB PERSONNAGE -->
         <div id="tab-character" class="tab-content">
-            <iframe src="character.html" style="width: 100%; height: calc(100vh - 200px); border: none; border-radius: 10px;"></iframe>
+            <iframe src="character.html" style="width: 100%; height: calc(100vh - 150px); border: none; border-radius: 10px;"></iframe>
         </div>
 
         <!-- MODAL DÉTAILS -->
