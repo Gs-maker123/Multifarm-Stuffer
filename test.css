@@ -1774,9 +1774,14 @@ body {
 @media (max-width: 992px) {
     .main-layout {
         flex-direction: column;
+        height: auto;
+        gap: 12px;
     }
     
     .equipped-slots, .stats-center, .inventory {
+        flex: 0 0 auto;
+        width: 100%;
+        height: 380px;
         max-height: 380px;
     }
     
@@ -1785,8 +1790,8 @@ body {
     }
     
     .search-filters {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
     }
     
     .display-mode-group {
@@ -1807,6 +1812,39 @@ body {
     .tab-btn {
         padding: 4px 10px;
         font-size: 10px;
+    }
+
+    .search-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+    }
+
+    .search-filters > #searchNom,
+    .search-filters > .panoply-search-control,
+    .search-filters > #addPanoplieToInventoryBtn,
+    .search-filters > .display-mode-group {
+        grid-column: 1 / -1;
+    }
+
+    .search-filters > input,
+    .search-filters > select,
+    .search-filters > button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .search-filters > input[type="number"] {
+        width: 100% !important;
+    }
+
+    .panoply-search-control {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .display-mode-group {
+        justify-self: center;
     }
     
     #equippedSlotsList {
@@ -1917,12 +1955,21 @@ body {
 
 /* Mode paysage sur mobile */
 @media (max-width: 768px) and (orientation: landscape) {
+    .footer {
+        display: none;
+    }
+
     .main-layout {
         flex-direction: row;
+        height: auto;
+        gap: 8px;
     }
     
     .equipped-slots, .stats-center, .inventory {
+        flex: 1 1 0;
+        width: 0;
         max-height: 65vh;
+        height: 65vh;
     }
     
     #equippedSlotsList {
