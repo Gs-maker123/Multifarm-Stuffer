@@ -13,13 +13,15 @@ const {
     getCategorieDisplayName,
     getItemCategorie
 } = dataModule;
-const { hydrateAllEquipementsFromDofusDB } = syncModule;
+const { hydrateAllEquipementsFromDofusDB, getPanoplieBonusDetails, getPanoplieItems, getPanoplieCatalog, getItemRecipeDetails } = syncModule;
 
 // ==================== ÉTAT ====================
 let userInventory = [];
 let profilFiltersBound = false;
 let bddFiltersBound = false;
 let currentSet = {};
+const legendaryStatusStorageKey = 'dofusLegendaryStatuses';
+const legendaryStatuses = JSON.parse(localStorage.getItem(legendaryStatusStorageKey) || '{}');
 let currentCategorie = 'all';
 let currentSearchTerm = '';
 let currentLevelFilterBdd = '';
@@ -155,15 +157,32 @@ function showDetailsModal(item) {
         detailLine('🔥 Intelligence', caracs?.intelligence),
         detailLine('💧 Chance', caracs?.chance),
         detailLine('🍃 Agilité', caracs?.agilite),
+        detailLine('⚡ Puissance', caracs?.puissance),
         detailLine('⭐ PA', stats.pa, (value) => `+${value}`),
         detailLine('🟩 PM', stats.pm, (value) => `+${value}`),
         detailLine('👁️ Portée', stats.portee),
         detailLine('❗ Critique', stats.critique),
+        detailLine('❗ Dommages critiques', stats.doCri),
+        detailLine('Dommages poussée', stats.doPou),
+        detailLine('Dommages', stats.dommage),
+        detailLine('Dommages neutre', stats.doNeutre),
+        detailLine('Dommages terre', stats.doTerre),
+        detailLine('Dommages feu', stats.doFeu),
+        detailLine('Dommages eau', stats.doEau),
+        detailLine('Dommages air', stats.doAir),
+        detailLine('% Dommages armes', stats.doPerArme),
+        detailLine('% Dommages sorts', stats.doSort),
+        detailLine('% Dommages mêlée', stats.doMelee),
+        detailLine('% Dommages distance', stats.doDist),
         detailLine('💕 Soin', stats.soin),
         detailLine('👼 Invocations', stats.invocations),
         detailLine('♾️ Tacle', stats.tacle),
+        detailLine('🦶 Fuite', stats.fuite),
+        detailLine('🦶⭐ Esquive PA', stats.esqPA),
         detailLine('🦶🟩 Esquive PM', stats.esqPM),
-        detailLine('➖⭐ Retrait PA', stats.retPA)
+        detailLine('➖⭐ Retrait PA', stats.retPA),
+        detailLine('➖🟩 Retrait PM', stats.retPM),
+        detailLine('🔒 Pods', stats.pods)
     ].join('');
 
     const resistanceRows = [];
@@ -182,6 +201,12 @@ function showDetailsModal(item) {
     const characteristicsHtml = characteristicsRows
         ? `<div class="detail-section"><h4>📊 Caractéristiques</h4>${characteristicsRows}</div>`
         : '';
+    const recipeDetailsHtml = renderRecipeDetails(item, true);
+    const panoplieId = item.panoplie?.id || item.itemSetId;
+    const panoplieBonusHtml = renderPanoplieBonuses(item, true);
+    const panoplieItemsHtml = panoplieId
+        ? `<div class="detail-section" id="detailPanoplyItems" data-panoplie-id="${escapeHtml(String(panoplieId))}"><h4>✨ Objets de la panoplie</h4><div class="detail-panoply-items">Chargement...</div></div>`
+        : '';
 
     content.innerHTML = `<div class="detail-image"><img src="${imagePath}" alt="${item.nom}" onerror="this.src='${defaultImage}'"></div>
         <div class="detail-row"><span class="detail-label">📦 Catégorie</span><span class="detail-value">${getCategorieDisplayName(item.categorie)}</span></div>
@@ -190,9 +215,15 @@ function showDetailsModal(item) {
         ${characteristicsHtml}
         ${resistanceHtml}
         ${displayPanoplieInfo(item)}
-        <div class="detail-section"><h4>🔨 Craft</h4>
-            <div class="detail-row"><span class="detail-label">Métier</span><span class="detail-value">${item.craft.metier}</span></div>
-            <div class="detail-row"><span class="detail-label">Niveau</span><span class="detail-value">${item.craft.niveau}</span></div></div>`;
+        ${panoplieBonusHtml}
+        ${panoplieItemsHtml}
+        ${recipeDetailsHtml}`;
+    const recipeDetails = content.querySelector('details[data-recipe-item-id]');
+    if (recipeDetails) loadRecipeDetails(recipeDetails);
+    const panoplieBonusDetails = content.querySelector('details[data-panoplie-id]');
+    if (panoplieBonusDetails) loadPanoplieBonuses(panoplieBonusDetails);
+    const panoplieItems = content.querySelector('#detailPanoplyItems');
+    if (panoplieItems) loadPanoplieItems(panoplieItems, panoplieId);
     modal.classList.add('active');
 }
 
@@ -795,6 +826,14 @@ function updateTotalStatsDisplay() {
     }
     const totalEl = document.getElementById('totalValue');
     if (totalEl) totalEl.textContent = formatKamas(totalKamas);
+
+    const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+    const characterLevel = document.getElementById('stuffCharacterLevel');
+    const equippedCount = document.getElementById('stuffEquippedCount');
+    if (characterLevel) characterLevel.textContent = characterData.level || '200';
+    if (equippedCount) {
+        equippedCount.textContent = `${Object.values(currentSet).filter(Boolean).length}/${slotsConfig.length}`;
+    }
 }
 
 // ==================== AFFICHAGE ====================
@@ -820,6 +859,89 @@ function displayEquippedSlots() {
             return `<div class="slot-item slot-item-empty"><div class="slot-info"><div class="slot-icon-small"><span style="font-size:16px;">${slot.emoji}</span></div><div><div class="slot-name">${slot.nom}</div><div class="slot-empty-text">—</div></div></div><div class="slot-actions"><button class="slot-details-btn-small" disabled style="opacity:0.3;">🔍</button><button class="remove-slot-small" disabled style="opacity:0.3;">Vide</button></div></div>`;
         }
     }).join('');
+
+    displayEquippedCharacter();
+}
+
+function displayEquippedCharacter() {
+    const leftContainer = document.getElementById('stuffSlotsLeft');
+    const rightContainer = document.getElementById('stuffSlotsRight');
+    const bottomContainer = document.getElementById('stuffSlotsBottom');
+    const display = document.getElementById('stuffDisplayWrapper');
+    if (!leftContainer || !rightContainer || !bottomContainer || !display) return;
+
+    const slotsBySide = {
+        left: ['coiffes', 'capes', 'amulettes', 'armes', 'familierMonture'],
+        right: ['anneaux1', 'anneaux2', 'ceintures', 'bottes', 'boucliers'],
+        bottom: ['dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6']
+    };
+    const containersBySide = { left: leftContainer, right: rightContainer, bottom: bottomContainer };
+
+    for (const [side, slotIds] of Object.entries(slotsBySide)) {
+        containersBySide[side].innerHTML = slotIds.map(slotId => {
+            const slot = slotsConfig.find(config => config.id === slotId);
+            const item = currentSet[slotId];
+            const label = slotId.startsWith('dofus') ? 'Dofus / ' : slot.nom.substring(0, 8);
+            const itemCategory = item ? (item.categorie || getItemCategorie(item)) : '';
+            const hasLegendaryStatus = slotId === 'familierMonture' && ['familiers', 'montiliers'].includes(itemCategory);
+            const statusKey = `${slotId}:${item?.id || ''}`;
+            const statusControl = hasLegendaryStatus
+                ? `<label class="legendary-status-control">Statut<select class="legendary-status-select" data-status-key="${escapeHtml(statusKey)}"><option value="normal">Normal</option><option value="legendary" ${legendaryStatuses[statusKey] === 'legendary' ? 'selected' : ''}>Légendaire</option></select></label>`
+                : '';
+            const content = item
+                ? `<img src="${escapeHtml(getImagePath(item))}" alt="${escapeHtml(item.nom)}" onerror="this.src='assets/images/equipements/default.png'">`
+                : `<div class="equipment-item-empty-content"><span style="font-size: 24px;">${slot.emoji}</span><span style="font-size: 8px; margin-top: 3px;">${escapeHtml(label)}</span></div>`;
+
+            return `<div class="equipment-item" data-slot-id="${slot.id}" title="${escapeHtml(item?.nom || slot.nom)}">${content}<div class="item-tooltip">${escapeHtml(item?.nom || slot.nom)}</div></div>${statusControl}`;
+        }).join('');
+    }
+
+    const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+    const characterImage = document.getElementById('stuffCharacterImg');
+    if (characterImage) characterImage.alt = characterData.name || 'Personnage';
+
+    if (!display.dataset.eventsBound) {
+        display.addEventListener('click', event => {
+            const equipmentItem = event.target.closest('.equipment-item');
+            if (equipmentItem) {
+                const slotId = equipmentItem.dataset.slotId;
+                const item = currentSet[slotId];
+                if (item) showDetailsModalFromId(item.id);
+                else showToast(`💡 Emplacement ${slotsConfig.find(slot => slot.id === slotId)?.nom || ''} vide.`);
+                return;
+            }
+
+            if (event.target.closest('#stuffEditCharacterBtn')) {
+                const data = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+                const name = prompt('Nom du personnage :', data.name || 'Mon Personnage');
+                if (name && name.trim()) {
+                    data.name = name.trim();
+                    localStorage.setItem('dofusCharacterData', JSON.stringify(data));
+                    if (characterImage) characterImage.alt = data.name;
+                    showToast(`✅ Personnage renommé en "${data.name}"`);
+                }
+                return;
+            }
+
+            if (event.target.closest('#stuffResetCharacterBtn') && confirm('Êtes-vous sûr ? Cela réinitialisera tous les équipements.')) {
+                slotsConfig.forEach(slot => { currentSet[slot.id] = null; });
+                saveSet();
+                displayEquippedSlots();
+                updateCharacterSheet();
+                displayInventory();
+                showToast('Personnage réinitialisé !');
+            }
+        });
+        display.addEventListener('change', event => {
+            const select = event.target.closest('.legendary-status-select');
+            if (!select) return;
+            const statusKey = select.dataset.statusKey;
+            if (select.value === 'legendary') legendaryStatuses[statusKey] = 'legendary';
+            else delete legendaryStatuses[statusKey];
+            localStorage.setItem(legendaryStatusStorageKey, JSON.stringify(legendaryStatuses));
+        });
+        display.dataset.eventsBound = 'true';
+    }
 }
 
 function getFilteredEquipementsProfil() {
@@ -915,8 +1037,12 @@ function filterEquipementsBdd(items) {
         }
         
         if (currentPanoplieFilter && currentPanoplieFilter !== '') {
-            if (!item.panoplie || !item.panoplie.nom) return false;
-            if (!item.panoplie.nom.toLowerCase().includes(currentPanoplieFilter.toLowerCase())) return false;
+            const itemPanoplieId = item.panoplie?.id || item.itemSetId;
+            if (itemPanoplieId) {
+                if (String(itemPanoplieId) !== String(currentPanoplieFilter)) return false;
+            } else if (!item.panoplie?.nom?.toLowerCase().includes(currentPanoplieFilter.toLowerCase())) {
+                return false;
+            }
         }
         
         return true;
@@ -981,12 +1107,13 @@ function displayEquipementsBdd() {
 
         if (currentDisplayMode === 'image') {
             html += `<div class="equipement-image-card">
+                <button type="button" class="minimal-details-button" title="Afficher les caractéristiques et la recette" aria-label="Afficher les caractéristiques et la recette" onclick="event.stopPropagation(); showDetailsModalFromId(${item.id})">🔍</button>
                 <img src="${imagePath}" alt="${escapeHtml(item.nom)}" loading="lazy" onerror="this.src='${defaultImage}'" onclick="addToInventoryAndRefresh(${JSON.stringify(item).replace(/"/g, '&quot;')})" title="Ajouter au stuff">
                 <h3>${escapeHtml(item.nom)}</h3>
                 <div class="equipement-image-meta">
                     <span>📶 Niveau ${item.level}</span>
                     <span>📦 ${categorieDisplay}</span>
-                    <span>${isInInventory ? '✓ Déjà dans l\'inventaire' : '➕ Cliquez sur l\'image pour ajouter'}</span>
+                    ${isInInventory ? '<span>✓ Déjà dans l\'inventaire</span>' : ''}
                 </div>
             </div>`;
             continue;
@@ -1015,19 +1142,178 @@ function displayEquipementsBdd() {
             renderStatInput('🔥 Intelligence', caracs?.intelligence, 'caracteristiques.intelligence', item.id),
             renderStatInput('💧 Chance', caracs?.chance, 'caracteristiques.chance', item.id),
             renderStatInput('🍃 Agilité', caracs?.agilite, 'caracteristiques.agilite', item.id),
+            renderStatInput('⚡ Puissance', caracs?.puissance, 'caracteristiques.puissance', item.id),
+            renderStatInput('❗ Dommages critiques', stats.doCri, 'doCri', item.id),
+            renderStatInput('% Dommages sorts', stats.doSort, 'doSort', item.id),
+            renderStatInput('% Dommages armes', stats.doPerArme, 'doPerArme', item.id),
+            renderStatInput('% Dommages mêlée', stats.doMelee, 'doMelee', item.id),
+            renderStatInput('% Dommages distance', stats.doDist, 'doDist', item.id),
             renderStatInput('⭐ PA', stats.pa, 'pa', item.id, 60),
             renderStatInput('🟩 PM', stats.pm, 'pm', item.id, 60)
         ].join('');
 
-        html += `<div class="equipement-card"><div class="card-image"><img src="${imagePath}" alt="${escapeHtml(item.nom)}" loading="lazy" onerror="this.src='${defaultImage}'"></div><div class="card-header"><h3>${escapeHtml(item.nom)}</h3><div><span class="badge badge-level">Niveau ${item.level}</span><span class="badge badge-categorie">📦 ${categorieDisplay}</span></div></div><div class="card-body"><div class="stats-grid">${statsHtml}</div><div class="stat valeur-k"><span class="stat-label">💰 Valeur</span><span class="stat-value"><input type="number" class="stat-input" value="${item.valeurK || 0}" onchange="updateValeurK(${item.id}, this.value)" style="width: 100px;"><span style="margin-left: 5px;">Kamas</span></span></div>${resistanceHtml}${item.panoplie && item.panoplie.nom ? `<div class="panoplie"><h4>✨ ${escapeHtml(item.panoplie.nom)}</h4></div>` : ''}</div><div class="card-footer"><div class="conditions">🔒 Niveau ${item.conditions.level}${item.conditions.classe ? ' • ' + (Array.isArray(item.conditions.classe) ? item.conditions.classe.join(', ') : item.conditions.classe) : ''}</div><div class="craft-info">🔨 ${item.craft.metier} (Niv. ${item.craft.niveau})</div></div><div class="add-button-container"><button class="add-btn" onclick="addToInventoryAndRefresh(${JSON.stringify(item).replace(/"/g, '&quot;')})" ${isInInventory ? 'disabled' : ''}>${isInInventory ? '✓' : '+'}</button></div></div>`;
+        html += `<div class="equipement-card">
+            <div class="card-image"><img src="${imagePath}" alt="${escapeHtml(item.nom)}" loading="lazy" onerror="this.src='${defaultImage}'"></div>
+            <div class="card-header"><h3>${escapeHtml(item.nom)}</h3><div><span class="badge badge-level">Niveau ${item.level}</span><span class="badge badge-categorie">📦 ${categorieDisplay}</span></div></div>
+            <div class="card-body"><div class="stats-grid">${statsHtml}</div><div class="stat valeur-k"><span class="stat-label">💰 Valeur</span><span class="stat-value"><input type="number" class="stat-input" value="${item.valeurK || 0}" onchange="updateValeurK(${item.id}, this.value)" style="width: 100px;"><span style="margin-left: 5px;">Kamas</span></span></div>${resistanceHtml}</div>
+            <div class="card-footer"><div class="conditions">🔒 Niveau ${item.conditions.level}${item.conditions.classe ? ' • ' + (Array.isArray(item.conditions.classe) ? item.conditions.classe.join(', ') : item.conditions.classe) : ''}</div></div>
+            <div class="add-button-container"><button class="add-btn" onclick="addToInventoryAndRefresh(${JSON.stringify(item).replace(/"/g, '&quot;')})" ${isInInventory ? 'disabled' : ''}>${isInInventory ? '✓' : '+'}</button></div>
+        </div>`;
     }
     grid.innerHTML = html;
+}
+
+function renderRecipeDetails(item, expanded = false) {
+    const resources = item.craft?.ressources;
+    const openAttribute = expanded ? ' open' : '';
+    if (Array.isArray(resources) && resources.length) {
+        const ingredients = resources.map(resource =>
+            `<li>${escapeHtml(resource.nom || resource.name || 'Ressource')} × ${escapeHtml(String(resource.quantite || resource.quantity || 1))}</li>`
+        ).join('');
+        return `<details class="recipe-details"${openAttribute}><summary>🔨 ${escapeHtml(item.craft.metier || 'Métier inconnu')} · niveau ${escapeHtml(String(item.craft.niveau || '?'))}</summary><div class="recipe-content"><ul>${ingredients}</ul></div></details>`;
+    }
+
+    if (!item.hasRecipe || !Number(item.dofusdbId)) return '';
+    return `<details class="recipe-details" data-recipe-item-id="${escapeHtml(String(item.dofusdbId))}"${openAttribute}><summary>🔨 Recette</summary><div class="recipe-content">Ouvrir pour charger les ingrédients.</div></details>`;
+}
+
+async function loadRecipeDetails(details) {
+    if (details.dataset.loaded || details.dataset.loading) return;
+    details.dataset.loading = 'true';
+    const content = details.querySelector('.recipe-content');
+
+    try {
+        const recipe = await getItemRecipeDetails(details.dataset.recipeItemId);
+        if (!recipe) {
+            content.textContent = 'Recette indisponible pour cet objet.';
+            return;
+        }
+
+        const level = recipe.level ? ` · niveau ${recipe.level}` : '';
+        details.querySelector('summary').textContent = `🔨 ${recipe.job}${level}`;
+        const ingredients = recipe.ingredients.map(ingredient =>
+            `<li>${escapeHtml(ingredient.name)} × ${escapeHtml(String(ingredient.quantity))}</li>`
+        ).join('');
+        content.innerHTML = `<div class="recipe-result">${escapeHtml(recipe.itemName || '')}</div><ul>${ingredients || '<li>Ingrédients non renseignés</li>'}</ul>`;
+        details.dataset.loaded = 'true';
+    } catch (error) {
+        content.textContent = 'Impossible de charger cette recette pour le moment.';
+        console.warn('Erreur chargement recette:', error);
+    } finally {
+        delete details.dataset.loading;
+    }
+}
+
+function renderPanoplieBonuses(item, expanded = false) {
+    const panoplie = item.panoplie || (Number(item.itemSetId) > 0
+        ? { id: Number(item.itemSetId), nom: `Panoplie #${item.itemSetId}` }
+        : null);
+    if (!panoplie) return '';
+
+    const openAttribute = expanded ? ' open' : '';
+    const name = panoplie.nom || (panoplie.id ? `Panoplie #${panoplie.id}` : 'Panoplie');
+    const localBonuses = panoplie.bonus;
+    if (localBonuses && typeof localBonuses === 'object') {
+        const statLabels = {
+            vita: 'Vitalité', vitalite: 'Vitalité', sagesse: 'Sagesse', force: 'Force',
+            intelligence: 'Intelligence', chance: 'Chance', agilite: 'Agilité',
+            agilité: 'Agilité', puissance: 'Puissance', pa: 'PA', pm: 'PM',
+            portee: 'Portée', prospection: 'Prospection', dommages: 'Dommages',
+            dommage: 'Dommages', critique: 'Coups critiques'
+        };
+        const tiers = Object.entries(localBonuses).map(([pieces, effects]) => {
+            const rows = Object.entries(effects || {}).map(([stat, value]) =>
+                `<li>${escapeHtml(statLabels[stat.toLowerCase()] || stat)} : ${escapeHtml(String(value))}</li>`
+            ).join('');
+            return rows ? `<div class="panoply-bonus-tier"><strong>${escapeHtml(pieces)} pièces</strong><ul>${rows}</ul></div>` : '';
+        }).join('');
+        return `<details class="panoply-bonus-details"${openAttribute}><summary>✨ ${escapeHtml(name)} · Bonus</summary><div class="panoply-bonus-content">${tiers || 'Aucun bonus renseigné.'}</div></details>`;
+    }
+
+    if (!panoplie.id) {
+        return `<div class="panoplie"><h4>✨ ${escapeHtml(name)}</h4></div>`;
+    }
+
+    return `<details class="panoply-bonus-details" data-panoplie-id="${escapeHtml(String(panoplie.id))}"${openAttribute}><summary>✨ ${escapeHtml(name)} · Bonus</summary><div class="panoply-bonus-content">Chargement des bonus...</div></details>`;
+}
+
+async function loadPanoplieBonuses(details) {
+    if (details.dataset.loaded || details.dataset.loading) return;
+    details.dataset.loading = 'true';
+    const content = details.querySelector('.panoply-bonus-content');
+
+    try {
+        const data = await getPanoplieBonusDetails(details.dataset.panoplieId);
+        if (!data?.bonuses?.length) {
+            content.textContent = 'Aucun bonus disponible pour cette panoplie.';
+            return;
+        }
+
+        const summary = details.querySelector('summary');
+        if (summary) summary.textContent = `✨ ${data.name} · Bonus`;
+        const bonusesHtml = data.bonuses.map(tier =>
+            `<div class="panoply-bonus-tier"><strong>${tier.pieces} pièces</strong><ul>${tier.effects.map(effect => `<li>${escapeHtml(effect)}</li>`).join('')}</ul></div>`
+        ).join('');
+        content.innerHTML = bonusesHtml || '<div class="panoply-bonus-empty">Aucun bonus renseigné.</div>';
+        details.dataset.loaded = 'true';
+    } catch (error) {
+        content.textContent = 'Impossible de charger les bonus pour le moment.';
+        console.warn('Erreur chargement bonus de panoplie:', error);
+    } finally {
+        delete details.dataset.loading;
+    }
+}
+
+async function loadPanoplieItems(section, panoplieId) {
+    const content = section.querySelector('.detail-panoply-items');
+    try {
+        const data = await getPanoplieItems(panoplieId);
+        if (!data?.items?.length) {
+            content.textContent = 'Aucun objet associé trouvé.';
+            return;
+        }
+        content.innerHTML = `<ul>${data.items.map(item => `<li>${escapeHtml(item.name)}${item.level ? ` <span>(niv. ${item.level})</span>` : ''}</li>`).join('')}</ul>`;
+    } catch (error) {
+        content.textContent = 'Impossible de charger les objets de cette panoplie.';
+        console.warn('Erreur chargement des objets de panoplie:', error);
+    }
 }
 
 window.addToInventoryAndRefresh = function(item) {
     addToInventory(item);
     displayEquipementsBdd();
 };
+
+async function addPanoplieToInventory(panoplieId) {
+    if (!panoplieId) return;
+
+    try {
+        const panoplie = await getPanoplieItems(panoplieId);
+        const catalogue = getAllEquipements();
+        const matchingItems = (panoplie?.items || []).map(setItem =>
+            catalogue.find(item => Number(item.dofusdbId) === Number(setItem.id))
+        ).filter(Boolean);
+        const newItems = matchingItems.filter(item =>
+            !userInventory.some(existing => existing.id === item.id)
+        );
+
+        if (newItems.length) {
+            userInventory.push(...newItems);
+            saveUserInventory();
+            displayInventory();
+            updateFooterStats();
+        }
+
+        showToast(newItems.length
+            ? `✅ ${newItems.length} équipement${newItems.length > 1 ? 's' : ''} ajouté${newItems.length > 1 ? 's' : ''} à l'inventaire${matchingItems.length > newItems.length ? ` · ${matchingItems.length - newItems.length} déjà présent${matchingItems.length - newItems.length > 1 ? 's' : ''}` : ''}`
+            : 'Tous les équipements de cette panoplie sont déjà dans l’inventaire.');
+    } catch (error) {
+        console.warn('Erreur ajout de panoplie à l’inventaire:', error);
+        showToast('Impossible de charger cette panoplie pour le moment.');
+    }
+}
+
+window.addPanoplieToInventory = addPanoplieToInventory;
 
 // ==================== INITIALISATION ====================
 function initTabs() {
@@ -1051,24 +1337,50 @@ function initTabs() {
 function initProfil() {
     const container = document.getElementById('categoriesFilter');
     if (container) {
+        const categorySelect = document.getElementById('categoryFilterSelect');
+        const applyCategoryFilter = (cat) => {
+            document.querySelectorAll('#categoriesFilter .cat-filter').forEach(b => b.classList.remove('active'));
+            const selectedButton = document.querySelector(`#categoriesFilter .cat-filter[data-cat="${cat}"]`);
+            if (selectedButton) selectedButton.classList.add('active');
+            if (categorySelect) categorySelect.value = cat;
+            currentCategory = cat;
+            displayInventory();
+        };
+
         container.innerHTML = '<button class="cat-filter active" data-cat="all">Toutes catégories</button>';
+        const allButton = container.querySelector('[data-cat="all"]');
+        if (allButton) {
+            allButton.onclick = () => applyCategoryFilter('all');
+        }
+
         const categories = [...new Set(getAllEquipements().map(i => i.categorie))];
+        if (categorySelect) {
+            categorySelect.innerHTML = '<option value="all">Toutes catégories</option>';
+        }
         categories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = 'cat-filter';
             btn.dataset.cat = cat;
             btn.textContent = `📦 ${getCategorieDisplayName(cat)}`;
-            btn.onclick = () => {
-                document.querySelectorAll('#categoriesFilter .cat-filter').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentCategory = cat;
-                displayInventory();
-            };
+            btn.onclick = () => applyCategoryFilter(cat);
             if (currentCategory === cat) {
                 btn.classList.add('active');
             }
             container.appendChild(btn);
+
+            if (categorySelect) {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = getCategorieDisplayName(cat);
+                categorySelect.appendChild(option);
+            }
         });
+        if (categorySelect) categorySelect.value = currentCategory;
+
+        if (categorySelect && !categorySelect.dataset.eventBound) {
+            categorySelect.addEventListener('change', event => applyCategoryFilter(event.target.value));
+            categorySelect.dataset.eventBound = 'true';
+        }
     }
 
     if (!profilFiltersBound) {
@@ -1085,46 +1397,144 @@ function initAdvancedSearch() {
     const statMin = document.getElementById('searchStatMin');
     const statMax = document.getElementById('searchStatMax');
     const panoplieSelect = document.getElementById('searchPanoplieBdd');
+    const panoplieSearchInput = document.getElementById('searchPanoplieInput');
+    const panoplieSuggestions = document.getElementById('panoplieSuggestions');
+    const addPanoplieButton = document.getElementById('addPanoplieToInventoryBtn');
     
     if (statSelect) statSelect.addEventListener('change', (e) => { currentStatFilter = e.target.value; displayEquipementsBdd(); });
     if (statMin) statMin.addEventListener('input', (e) => { currentStatMin = e.target.value; displayEquipementsBdd(); });
     if (statMax) statMax.addEventListener('input', (e) => { currentStatMax = e.target.value; displayEquipementsBdd(); });
     
-    if (panoplieSelect) {
-        const allItems = getAllEquipements();
-        const panoplies = new Set();
-        allItems.forEach(item => {
-            if (item.panoplie && item.panoplie.nom) {
-                panoplies.add(item.panoplie.nom);
+    if (panoplieSelect && panoplieSearchInput && panoplieSuggestions) {
+        let panoplies = [];
+        const normalizeName = value => value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const panoplieSearchKey = name => normalizeName(name).replace(/^panoplie\s+(?:(?:du|des|de)\s+|d['’])?/, '');
+        const closeSuggestions = () => {
+            panoplieSuggestions.hidden = true;
+            panoplieSearchInput.setAttribute('aria-expanded', 'false');
+        };
+        const choosePanoplie = panoplie => {
+            panoplieSearchInput.value = panoplie.name;
+            panoplieSelect.value = String(panoplie.id);
+            currentPanoplieFilter = String(panoplie.id);
+            if (addPanoplieButton) addPanoplieButton.disabled = false;
+            closeSuggestions();
+            displayEquipementsBdd();
+        };
+        const renderSuggestions = () => {
+            const prefix = normalizeName(panoplieSearchInput.value);
+            panoplieSuggestions.replaceChildren();
+            if (prefix.length < 3) {
+                closeSuggestions();
+                return;
             }
-        });
-        const sortedPanoplies = Array.from(panoplies).sort();
-        sortedPanoplies.forEach(p => {
-            const option = document.createElement('option');
-            option.value = p;
-            option.textContent = p;
-            panoplieSelect.appendChild(option);
-        });
-        panoplieSelect.addEventListener('change', (e) => { currentPanoplieFilter = e.target.value; displayEquipementsBdd(); });
+
+            const matches = panoplies.filter(panoplie =>
+                normalizeName(panoplie.name).startsWith(prefix) || panoplieSearchKey(panoplie.name).startsWith(prefix)
+            ).slice(0, 60);
+            matches.forEach(panoplie => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'panoply-suggestion';
+                option.setAttribute('role', 'option');
+                option.textContent = panoplie.name;
+                option.dataset.panoplieId = String(panoplie.id);
+                panoplieSuggestions.appendChild(option);
+            });
+            panoplieSuggestions.hidden = matches.length === 0;
+            panoplieSearchInput.setAttribute('aria-expanded', String(matches.length > 0));
+        };
+
+        const populatePanoplieOptions = async () => {
+            try {
+                panoplies = await getPanoplieCatalog();
+                panoplieSelect.replaceChildren(new Option('Toutes panoplies', ''));
+                panoplies.forEach(panoplie => {
+                    panoplieSelect.add(new Option(panoplie.name, String(panoplie.id)));
+                });
+                panoplieSelect.value = currentPanoplieFilter;
+                if (currentPanoplieFilter) {
+                    panoplieSearchInput.value = panoplies.find(set => String(set.id) === currentPanoplieFilter)?.name || '';
+                }
+            } catch (error) {
+                console.warn('Impossible de charger les panoplies pour le filtre:', error);
+                const fallbackPanoplies = new Map();
+                getAllEquipements().forEach(item => {
+                    if (item.panoplie?.nom) {
+                        const id = item.panoplie.id ? String(item.panoplie.id) : item.panoplie.nom;
+                        fallbackPanoplies.set(id, item.panoplie.nom);
+                    }
+                });
+                panoplieSelect.replaceChildren(new Option('Toutes panoplies', ''));
+                [...fallbackPanoplies.entries()].sort((a, b) => a[1].localeCompare(b[1], 'fr')).forEach(([id, name]) => {
+                    panoplieSelect.add(new Option(name, id));
+                });
+                panoplies = [...fallbackPanoplies.entries()].map(([id, name]) => ({ id, name }));
+            }
+            renderSuggestions();
+        };
+
+        if (!panoplieSearchInput.dataset.eventBound) {
+            panoplieSearchInput.addEventListener('input', () => {
+                if (currentPanoplieFilter) {
+                    currentPanoplieFilter = '';
+                    panoplieSelect.value = '';
+                    if (addPanoplieButton) addPanoplieButton.disabled = true;
+                    displayEquipementsBdd();
+                }
+                renderSuggestions();
+            });
+            panoplieSearchInput.addEventListener('keydown', event => {
+                if (event.key === 'Enter') {
+                    const firstSuggestion = panoplieSuggestions.querySelector('.panoply-suggestion');
+                    if (firstSuggestion) {
+                        event.preventDefault();
+                        firstSuggestion.click();
+                    }
+                } else if (event.key === 'Escape') {
+                    closeSuggestions();
+                }
+            });
+            panoplieSuggestions.addEventListener('click', event => {
+                const option = event.target.closest('.panoply-suggestion');
+                const panoplie = panoplies.find(set => String(set.id) === option?.dataset.panoplieId);
+                if (panoplie) choosePanoplie(panoplie);
+            });
+            panoplieSearchInput.dataset.eventBound = 'true';
+        }
+        if (addPanoplieButton && !addPanoplieButton.dataset.eventBound) {
+            addPanoplieButton.addEventListener('click', () => addPanoplieToInventory(currentPanoplieFilter));
+            addPanoplieButton.dataset.eventBound = 'true';
+        }
+        if (addPanoplieButton) addPanoplieButton.disabled = !currentPanoplieFilter;
+        populatePanoplieOptions();
     }
 }
 
 function initBdd() {
     const container = document.getElementById('categoriesBdd');
     if (container) {
+        const applyCategoryFilter = (cat) => {
+            document.querySelectorAll('#categoriesBdd .cat-btn').forEach(b => b.classList.remove('active'));
+            const selectedButton = document.querySelector(`#categoriesBdd .cat-btn[data-categorie="${cat}"]`);
+            if (selectedButton) selectedButton.classList.add('active');
+            currentCategorie = cat;
+            displayEquipementsBdd();
+        };
+
         container.innerHTML = '<button class="cat-btn active" data-categorie="all">📦 Tous</button>';
+        const allButton = container.querySelector('[data-categorie="all"]');
+        if (allButton) {
+            allButton.onclick = () => applyCategoryFilter('all');
+        }
+
         const categories = getCategories();
         categories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = 'cat-btn';
             btn.setAttribute('data-categorie', cat);
             btn.textContent = `📦 ${getCategorieDisplayName(cat)}`;
-            btn.onclick = () => {
-                document.querySelectorAll('#categoriesBdd .cat-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentCategorie = cat;
-                displayEquipementsBdd();
-            };
+            btn.onclick = () => applyCategoryFilter(cat);
             if (currentCategorie === cat) {
                 btn.classList.add('active');
             }
@@ -1182,10 +1592,22 @@ function initBdd() {
             const statMin = document.getElementById('searchStatMin');
             const statMax = document.getElementById('searchStatMax');
             const panoplieSelect = document.getElementById('searchPanoplieBdd');
+            const panoplieSearchInput = document.getElementById('searchPanoplieInput');
+            const panoplieSuggestions = document.getElementById('panoplieSuggestions');
+            const addPanoplieButton = document.getElementById('addPanoplieToInventoryBtn');
             if (statSelect) statSelect.value = '';
             if (statMin) statMin.value = '';
             if (statMax) statMax.value = '';
             if (panoplieSelect) panoplieSelect.value = '';
+            if (panoplieSearchInput) {
+                panoplieSearchInput.value = '';
+                panoplieSearchInput.setAttribute('aria-expanded', 'false');
+            }
+            if (panoplieSuggestions) {
+                panoplieSuggestions.replaceChildren();
+                panoplieSuggestions.hidden = true;
+            }
+            if (addPanoplieButton) addPanoplieButton.disabled = true;
             displayEquipementsBdd();
         });
         
