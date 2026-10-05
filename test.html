@@ -21,8 +21,98 @@
         <div id="tab-profil" class="tab-content active">
             <div class="main-layout">
                 <div class="equipped-slots">
-                    <h2>📦 Équipement du personnage</h2>
-                    <div id="equippedSlotsList"></div>
+                    <h2>💾 Gestion du stuff</h2>
+                    <section class="character-point-allocation" id="characterPointAllocation">
+                        <h3>Attribution des caractéristiques</h3>
+                        <div class="character-point-budget">Points disponibles <strong id="characterPointsRemaining">995</strong><span>/</span><span id="characterPointsBudget">995</span></div>
+                        <p class="character-point-cost-note">Force, agilité, chance, intelligence : 1 / 2 / 3 / 4 points par tranche. Sagesse : 3 pour 1 ; vitalité : 1 pour 1.</p>
+                        <div class="character-point-grid">
+                            <label>💪Force<input type="number" min="0" step="1" value="0" data-character-point="force"></label>
+                            <label>🍃Agilité<input type="number" min="0" step="1" value="0" data-character-point="agilite"></label>
+                            <label>💧Chance<input type="number" min="0" step="1" value="0" data-character-point="chance"></label>
+                            <label>🔥Intelligence<input type="number" min="0" step="1" value="0" data-character-point="intelligence"></label>
+                            <label>📖Sagesse<input type="number" min="0" step="1" value="0" data-character-point="sagesse"></label>
+                            <label>❤️Vitalité<input type="number" min="0" step="1" value="0" data-character-point="vita"></label>
+                        </div>
+                    </section>
+                    <div class="forgemage-set">
+                        <div class="forge-item-set">
+                            <input type="checkbox" id="forgePACheck" onchange="toggleForgePA()">
+                            <span class="forge-label-set">⭐PA</span>
+                            <span class="forge-value-set" id="forgePAValue">+0</span>
+                        </div>
+                        <div class="forge-item-set">
+                            <input type="checkbox" id="forgePMCheck" onchange="toggleForgePM()">
+                            <span class="forge-label-set">🟩PM</span>
+                            <span class="forge-value-set" id="forgePMValue">+0</span>
+                        </div>
+                        <div class="forge-item-set">
+                            <input type="checkbox" id="forgePOCheck" onchange="toggleForgePO()">
+                            <span class="forge-label-set">👁️PO</span>
+                            <span class="forge-value-set" id="forgePOValue">+0</span>
+                        </div>
+                    </div>
+                    <div class="parchotage-section">
+                        <div class="parchotage-title">
+                            📜 Parchottages <span style="font-size: 0.7rem;">(max 100 par stat)</span>
+                        </div>
+                        <div class="parchotage-grid">
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">❤️ Vitalité</span>
+                                <input type="number" id="parchotageVita" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('vita', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('vita', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageVitaValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">💪 Force</span>
+                                <input type="number" id="parchotageForce" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('force', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('force', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageForceValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">🔥 Intelligence</span>
+                                <input type="number" id="parchotageIntel" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('intelligence', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('intelligence', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageIntelValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">💧 Chance</span>
+                                <input type="number" id="parchotageChance" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('chance', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('chance', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageChanceValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">🍃 Agilité</span>
+                                <input type="number" id="parchotageAgilite" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('agilite', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('agilite', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageAgiliteValue">+0</span>
+                            </div>
+                            <div class="parchotage-item">
+                                <span class="parchotage-label">📖 Sagesse</span>
+                                <input type="number" id="parchotageSagesse" class="parchotage-input" value="0" min="0" max="100" step="1">
+                                <div class="parchotage-buttons">
+                                    <button class="parchotage-btn-zero" onclick="updateParchotage('sagesse', 0)">0</button>
+                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('sagesse', 100)">100</button>
+                                </div>
+                                <span class="parchotage-value" id="parchotageSagesseValue">+0</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="template-panel">
                         <h3>💾 Templates de stuff</h3>
                         <div class="template-controls">
@@ -63,7 +153,7 @@
                                         <button type="button" id="stuffCancelCharacterNameBtn">Annuler</button>
                                     </div>
                                     <div class="character-image-large">
-                                        <img id="stuffCharacterImg" src="characters/dofus/0-0.png" alt="Personnage">
+                                        <img id="stuffCharacterImg" src="assets/images/characters/dofus/0-0.png" alt="Personnage">
                                     </div>
                                     <div class="character-actions">
                                         <button id="stuffEditCharacterBtn">✏️ Nommer</button>
@@ -126,105 +216,29 @@
                         </div>
                     </div>
 
-                    <div class="bonus-stats">
-                        <div class="bonus-item"><span class="bonus-label">⭐PA</span><span class="bonus-value" id="bonusPA">+0</span></div>
-                        <div class="bonus-item"><span class="bonus-label">🟩PM</span><span class="bonus-value" id="bonusPM">+0</span></div>
-                        <div class="bonus-item"><span class="bonus-label">👁️PO</span><span class="bonus-value" id="bonusPO">+0</span></div>
-                    </div>
-
                     <div class="resistances-set">
                         <h4>🛡️ RÉSISTANCES</h4>
                         <div class="resist-grid-set">
-                            <div class="resist-item-set"><span>🛡️⬜ Neutre</span><span id="resNeutre">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🟫 Terre</span><span id="resTerre">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🟥 Feu</span><span id="resFeu">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🟦 Eau</span><span id="resEau">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🟩 Air</span><span id="resAir">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️❗ Critique</span><span id="resCri">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🤜 Mélée</span><span id="resMelee">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🗡️ Armes</span><span id="resArmes">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🔜 Poussée</span><span id="resPou">0%</span></div>
-                            <div class="resist-item-set"><span>🛡️🏹 Distance</span><span id="resDist">0%</span></div>
-                        </div>
-                    </div>
-
-                    <div class="forgemage-set">
-                        <div class="forge-item-set">
-                            <input type="checkbox" id="forgePACheck" onchange="toggleForgePA()">
-                            <span class="forge-label-set">⭐PA</span>
-                            <span class="forge-value-set" id="forgePAValue">+0</span>
-                        </div>
-                        <div class="forge-item-set">
-                            <input type="checkbox" id="forgePMCheck" onchange="toggleForgePM()">
-                            <span class="forge-label-set">🟩PM</span>
-                            <span class="forge-value-set" id="forgePMValue">+0</span>
-                        </div>
-                        <div class="forge-item-set">
-                            <input type="checkbox" id="forgePOCheck" onchange="toggleForgePO()">
-                            <span class="forge-label-set">👁️PO</span>
-                            <span class="forge-value-set" id="forgePOValue">+0</span>
-                        </div>
-                    </div>
-
-                    <div class="parchotage-section">
-                        <div class="parchotage-title">
-                            📜 Parchottages <span style="font-size: 0.7rem;">(max 100 par stat)</span>
-                        </div>
-                        <div class="parchotage-grid">
-                            <div class="parchotage-item">
-                                <span class="parchotage-label">❤️ Vitalité</span>
-                                <input type="number" id="parchotageVita" class="parchotage-input" value="0" min="0" max="100" step="1">
-                                <div class="parchotage-buttons">
-                                    <button class="parchotage-btn-zero" onclick="updateParchotage('vita', 0)">0</button>
-                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('vita', 100)">100</button>
+                            <section class="resist-group-set">
+                                <h5>Élémentaires</h5>
+                                <div class="resist-group-values">
+                                    <div class="resist-item-set"><span>⬜ Neutre</span><span id="resNeutre">0%</span></div>
+                                    <div class="resist-item-set"><span>🟫 Terre</span><span id="resTerre">0%</span></div>
+                                    <div class="resist-item-set"><span>🟥 Feu</span><span id="resFeu">0%</span></div>
+                                    <div class="resist-item-set"><span>🟦 Eau</span><span id="resEau">0%</span></div>
+                                    <div class="resist-item-set"><span>🟩 Air</span><span id="resAir">0%</span></div>
                                 </div>
-                                <span class="parchotage-value" id="parchotageVitaValue">+0</span>
-                            </div>
-                            <div class="parchotage-item">
-                                <span class="parchotage-label">💪 Force</span>
-                                <input type="number" id="parchotageForce" class="parchotage-input" value="0" min="0" max="100" step="1">
-                                <div class="parchotage-buttons">
-                                    <button class="parchotage-btn-zero" onclick="updateParchotage('force', 0)">0</button>
-                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('force', 100)">100</button>
+                            </section>
+                            <section class="resist-group-set">
+                                <h5>Secondaires</h5>
+                                <div class="resist-group-values">
+                                    <div class="resist-item-set"><span>❗ Critique</span><span id="resCri">0%</span></div>
+                                    <div class="resist-item-set"><span>🤜 Mêlée</span><span id="resMelee">0%</span></div>
+                                    <div class="resist-item-set"><span>🗡️ Armes</span><span id="resArmes">0%</span></div>
+                                    <div class="resist-item-set"><span>🔜 Poussée</span><span id="resPou">0%</span></div>
+                                    <div class="resist-item-set"><span>🏹 Distance</span><span id="resDist">0%</span></div>
                                 </div>
-                                <span class="parchotage-value" id="parchotageForceValue">+0</span>
-                            </div>
-                            <div class="parchotage-item">
-                                <span class="parchotage-label">🔥 Intelligence</span>
-                                <input type="number" id="parchotageIntel" class="parchotage-input" value="0" min="0" max="100" step="1">
-                                <div class="parchotage-buttons">
-                                    <button class="parchotage-btn-zero" onclick="updateParchotage('intelligence', 0)">0</button>
-                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('intelligence', 100)">100</button>
-                                </div>
-                                <span class="parchotage-value" id="parchotageIntelValue">+0</span>
-                            </div>
-                            <div class="parchotage-item">
-                                <span class="parchotage-label">💧 Chance</span>
-                                <input type="number" id="parchotageChance" class="parchotage-input" value="0" min="0" max="100" step="1">
-                                <div class="parchotage-buttons">
-                                    <button class="parchotage-btn-zero" onclick="updateParchotage('chance', 0)">0</button>
-                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('chance', 100)">100</button>
-                                </div>
-                                <span class="parchotage-value" id="parchotageChanceValue">+0</span>
-                            </div>
-                            <div class="parchotage-item">
-                                <span class="parchotage-label">🍃 Agilité</span>
-                                <input type="number" id="parchotageAgilite" class="parchotage-input" value="0" min="0" max="100" step="1">
-                                <div class="parchotage-buttons">
-                                    <button class="parchotage-btn-zero" onclick="updateParchotage('agilite', 0)">0</button>
-                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('agilite', 100)">100</button>
-                                </div>
-                                <span class="parchotage-value" id="parchotageAgiliteValue">+0</span>
-                            </div>
-                            <div class="parchotage-item">
-                                <span class="parchotage-label">📖 Sagesse</span>
-                                <input type="number" id="parchotageSagesse" class="parchotage-input" value="0" min="0" max="100" step="1">
-                                <div class="parchotage-buttons">
-                                    <button class="parchotage-btn-zero" onclick="updateParchotage('sagesse', 0)">0</button>
-                                    <button class="parchotage-btn-hundred" onclick="updateParchotage('sagesse', 100)">100</button>
-                                </div>
-                                <span class="parchotage-value" id="parchotageSagesseValue">+0</span>
-                            </div>
+                            </section>
                         </div>
                     </div>
 
