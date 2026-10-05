@@ -153,7 +153,15 @@
                                         <button type="button" id="stuffCancelCharacterNameBtn">Annuler</button>
                                     </div>
                                     <div class="character-class-controls">
-                                        <select id="stuffCharacterClass" aria-label="Classe du personnage">
+                                        <div class="character-class-picker">
+                                            <button type="button" id="characterClassPickerButton" class="character-class-picker-toggle" aria-label="Choisir une classe" aria-haspopup="listbox" aria-expanded="false" aria-controls="characterClassPickerOptions" disabled>
+                                                <img id="characterClassPickerIcon" alt="" hidden>
+                                                <span id="characterClassPickerLabel">Chargement des classes...</span>
+                                                <span class="character-class-picker-chevron" aria-hidden="true">⌄</span>
+                                            </button>
+                                            <div id="characterClassPickerOptions" class="character-class-picker-options" role="listbox" aria-label="Classes" popover="manual"></div>
+                                        </div>
+                                        <select id="stuffCharacterClass" aria-label="Classe du personnage" aria-hidden="true" tabindex="-1" hidden>
                                             <option value="">Chargement des classes...</option>
                                         </select>
                                         <button type="button" id="stuffViewSpellsBtn" disabled>Sorts</button>
