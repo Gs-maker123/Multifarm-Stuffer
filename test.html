@@ -152,6 +152,12 @@
                                         <button type="button" id="stuffSaveCharacterNameBtn">Enregistrer</button>
                                         <button type="button" id="stuffCancelCharacterNameBtn">Annuler</button>
                                     </div>
+                                    <div class="character-class-controls">
+                                        <select id="stuffCharacterClass" aria-label="Classe du personnage">
+                                            <option value="">Chargement des classes...</option>
+                                        </select>
+                                        <button type="button" id="stuffViewSpellsBtn" disabled>Sorts</button>
+                                    </div>
                                     <div class="character-image-large">
                                         <img id="stuffCharacterImg" src="characters/dofus/0-0.png" alt="Personnage">
                                     </div>
@@ -331,6 +337,16 @@
             </div>
         </div>
 
+        <div id="modalClassSpells" class="modal-details" role="dialog" aria-modal="true" aria-labelledby="classSpellsTitle">
+            <div class="modal-details-content class-spells-modal-content">
+                <div class="modal-details-header"><h3 id="classSpellsTitle">Sorts de classe</h3><button type="button" class="modal-close" data-class-spells-close aria-label="Fermer">&times;</button></div>
+                <div class="modal-details-body">
+                    <input id="classSpellsSearch" class="class-spells-search" type="search" placeholder="Rechercher un sort..." aria-label="Rechercher un sort">
+                    <div id="classSpellsList" class="class-spells-list" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
         <details class="shortcuts">
             <summary class="shortcuts-toggle">📌</summary>
             <div class="shortcuts-content">
@@ -383,7 +399,7 @@
         </div>
         <div class="footer-bottom">
             <p>Dofus est une marque déposée d'Ankama Studio. Ce site est un outil non officiel et n'est pas affilié à Ankama.</p>
-            <p>Les données des équipements sont fournies par <strong>DofusDB API</strong> (https://api.dofusdb.fr) — merci à leur équipe !</p>
+            <p>Données issues de DofusDB. Utilisation soumise à la LPNC-IA 1.0.</p>
             <div class="footer-credits">
                 Développé par GSTK © 2026
             </div>
