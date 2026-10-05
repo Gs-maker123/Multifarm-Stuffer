@@ -1462,7 +1462,7 @@ function initCharacterClasses() {
     const modal = document.getElementById('modalClassSpells');
     const search = document.getElementById('classSpellsSearch');
     const characterImage = document.getElementById('stuffCharacterImg');
-    const defaultCharacterImage = 'assets/images/characters/dofus/0-0.png';
+    const defaultCharacterImage = 'characters/dofus/0-0.png';
     if (!select || !spellsButton || !pickerButton || !pickerIcon || !pickerLabel || !pickerOptions || !modal) return;
 
     let breeds = [];
