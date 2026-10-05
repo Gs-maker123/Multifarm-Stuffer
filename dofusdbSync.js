@@ -9,6 +9,11 @@ const CATALOG_CACHE_VERSION = 8;
 const CATALOG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const PANOPLIE_CATALOG_CACHE_KEY = 'dofusdbPanoplieCatalogCache';
 const PANOPLIE_CATALOG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const BREED_CATALOG_CACHE_KEY = 'dofusdbBreedCatalogCache';
+const BREED_CATALOG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const CLASS_SPELL_FETCH_CONCURRENCY = 6;
+let breedCatalogRequest = null;
+const breedSpellsCache = new Map();
 
 const EFFECT_ID_MAP = {
   vita: 125,
@@ -492,6 +497,103 @@ async function fetchItemsForType(typeId, skip = 0) {
 
   const payload = await response.json();
   return payload || { data: [], total: 0 };
+}
+
+export async function getDofusDbBreeds() {
+  if (breedCatalogRequest) return breedCatalogRequest;
+
+  breedCatalogRequest = (async () => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(BREED_CATALOG_CACHE_KEY) || 'null');
+      if (cached?.breeds?.length && Date.now() - cached.timestamp < BREED_CATALOG_CACHE_TTL_MS) {
+        return cached.breeds;
+      }
+    } catch {
+      // Ignore invalid or unavailable local cache.
+    }
+
+    const params = new URLSearchParams({ lang: 'fr', '$limit': '50', '$sort[sortIndex]': '1' });
+    const response = await fetch(`${DOFUSDB_API_BASE}/breeds?${params}`);
+    if (!response.ok) throw new Error(`DofusDB breeds fetch failed: ${response.status}`);
+
+    const payload = await response.json();
+    const breeds = (payload.data || [])
+      .filter(breed => breed && Array.isArray(breed.breedSpellsId) && breed.shortName?.fr)
+      .sort((first, second) => Number(first.sortIndex || 0) - Number(second.sortIndex || 0));
+
+    try {
+      localStorage.setItem(BREED_CATALOG_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), breeds }));
+    } catch {
+      // Ignore storage quota errors.
+    }
+    return breeds;
+  })();
+
+  try {
+    return await breedCatalogRequest;
+  } catch (error) {
+    breedCatalogRequest = null;
+    throw error;
+  }
+}
+
+export async function getDofusDbBreedSpells(breedId) {
+  const id = Number(breedId);
+  if (breedSpellsCache.has(id)) return breedSpellsCache.get(id);
+
+  const breeds = await getDofusDbBreeds();
+  const breed = breeds.find(entry => Number(entry.id) === id);
+  if (!breed) throw new Error('Classe DofusDB introuvable.');
+
+  const levels = [];
+  let skip = 0;
+  let total = Infinity;
+  while (skip < total) {
+    const params = new URLSearchParams({
+      lang: 'fr',
+      spellBreed: String(id),
+      '$limit': '50',
+      '$skip': String(skip)
+    });
+    const response = await fetch(`${DOFUSDB_API_BASE}/spell-levels?${params}`);
+    if (!response.ok) throw new Error(`DofusDB spell levels fetch failed: ${response.status}`);
+    const payload = await response.json();
+    const page = payload.data || [];
+    levels.push(...page);
+    total = Number(payload.total) || levels.length;
+    if (!page.length) break;
+    skip += page.length;
+  }
+
+  const levelsBySpellId = new Map();
+  for (const level of levels) {
+    const spellId = Number(level.spellId);
+    if (!levelsBySpellId.has(spellId)) levelsBySpellId.set(spellId, []);
+    levelsBySpellId.get(spellId).push(level);
+  }
+
+  const spellIds = [...new Set(breed.breedSpellsId.map(Number))];
+  const spells = [];
+  for (let index = 0; index < spellIds.length; index += CLASS_SPELL_FETCH_CONCURRENCY) {
+    const batch = spellIds.slice(index, index + CLASS_SPELL_FETCH_CONCURRENCY);
+    const results = await Promise.all(batch.map(async spellId => {
+      try {
+        const response = await fetch(`${DOFUSDB_API_BASE}/spells/${spellId}?lang=fr`);
+        if (!response.ok) return null;
+        const spell = await response.json();
+        return {
+          ...spell,
+          levels: (levelsBySpellId.get(Number(spell.id)) || []).sort((first, second) => Number(first.grade) - Number(second.grade))
+        };
+      } catch {
+        return null;
+      }
+    }));
+    spells.push(...results.filter(Boolean));
+  }
+
+  breedSpellsCache.set(id, spells);
+  return spells;
 }
 
 async function hydrateType(typeId) {
