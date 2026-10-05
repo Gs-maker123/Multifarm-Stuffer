@@ -164,10 +164,69 @@ body {
     padding-bottom: 8px;
 }
 
-#equippedSlotsList {
+.character-point-allocation {
+    margin: 8px 0;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 216, 155, 0.2);
+    border-radius: 6px;
+}
+
+.character-point-allocation h3 {
+    margin-bottom: 5px;
+    color: #ffd89b;
+    font-size: 0.72rem;
+}
+
+.character-point-budget {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 6px;
+    color: #aaa;
+    font-size: 0.62rem;
+}
+
+.character-point-budget strong {
+    color: #ffd89b;
+    font-size: 0.8rem;
+}
+
+.character-point-cost-note {
+    margin: 0 0 6px;
+    color: #999;
+    font-size: 0.55rem;
+    line-height: 1.25;
+}
+
+.character-point-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.character-point-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    color: #ccc;
+    font-size: 0.6rem;
+}
+
+.character-point-grid input {
+    width: 100%;
+    min-width: 0;
+    padding: 4px 5px;
+    border: 1px solid rgba(255, 216, 155, 0.3);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #ffd89b;
+    font-size: 0.7rem;
+}
+
+.character-point-allocation.over-budget .character-point-budget strong {
+    color: #ff7777;
 }
 
 /* Colonne centrale - Statistiques */
@@ -479,7 +538,8 @@ body {
     color: #888;
 }
 
-.details-stats h4 {
+.details-stats h4,
+.resistances-set h4 {
     color: #c7e9fb;
     font-size: 0.7rem;
     margin: 8px 0 5px 0;
@@ -502,47 +562,50 @@ body {
     gap: 4px;
 }
 
-.bonus-stats {
-    display: flex;
-    justify-content: space-around;
-    padding: 5px;
-    background: rgba(255, 216, 155, 0.05);
-    border-radius: 8px;
-    margin: 8px 0;
-    flex-wrap: wrap;
-}
-
-.bonus-item {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-}
-
-.bonus-label {
-    font-size: 0.6rem;
-    color: #888;
-}
-
-.bonus-value {
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: #ffd89b;
-}
-
 .resist-grid-set {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
     margin-bottom: 8px;
+}
+
+.resist-group-set {
+    min-width: 0;
+}
+
+.resist-group-set h5 {
+    margin-bottom: 4px;
+    color: #c7e9fb;
+    font-size: 0.58rem;
+}
+
+.resist-group-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
 }
 
 .resist-item-set {
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 4px;
+    min-width: 0;
     padding: 3px 5px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 4px;
     font-size: 0.6rem;
+}
+
+.resist-item-set span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.resist-item-set span:last-child {
+    flex: 0 0 auto;
+    color: #ffd89b;
+    font-weight: bold;
 }
 
 /* ==================== FORGEMAGIE ==================== */
@@ -970,117 +1033,6 @@ body {
     transform: scale(1.05);
 }
 
-/* ==================== SLOTS ÉQUIPÉS ==================== */
-.slot-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 5px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 217, 102, 0.3);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.slot-item:hover {
-    border-color: rgba(255, 217, 102, 0.8);
-    background: rgba(255, 217, 102, 0.1);
-    transform: scale(1.04);
-    box-shadow: 0 0 12px rgba(255, 217, 102, 0.25);
-}
-
-.slot-item-empty {
-    opacity: 0.6;
-}
-
-.slot-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    width: 100%;
-}
-
-.slot-icon-small {
-    width: 35px;
-    height: 35px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 217, 102, 0.2);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.slot-icon-small img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.slot-icon-small span {
-    font-size: 18px;
-}
-
-.slot-name {
-    font-size: 9px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.slot-item-name {
-    font-size: 8px;
-    color: #ffd89b;
-    text-align: center;
-    word-break: break-word;
-    max-width: 70px;
-}
-
-.slot-empty-text {
-    font-size: 8px;
-    color: #666;
-    text-align: center;
-}
-
-.slot-actions {
-    display: flex;
-    gap: 3px;
-    margin-top: 3px;
-}
-
-.slot-details-btn-small, .remove-slot-small {
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-size: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.slot-details-btn-small {
-    background: rgba(33, 150, 243, 0.3);
-    border: none;
-    color: #66b3ff;
-}
-
-.slot-details-btn-small:hover {
-    background: rgba(33, 150, 243, 0.6);
-    color: white;
-}
-
-.remove-slot-small {
-    background: rgba(255, 68, 68, 0.3);
-    border: none;
-    color: #ff6666;
-}
-
-.remove-slot-small:hover {
-    background: rgba(255, 68, 68, 0.6);
-    color: white;
-}
-
 /* ==================== BASE DE DONNÉES ==================== */
 .search-panel {
     background: rgba(255, 255, 255, 0.1);
@@ -1384,12 +1336,51 @@ body {
 }
 
 .detail-panoply-items ul {
-    margin: 3px 0 0 14px;
+    display: grid;
+    gap: 4px;
+    margin: 3px 0 0;
+    padding: 0;
+    list-style: none;
     color: #ddd;
     font-size: 0.75rem;
 }
 
-.detail-panoply-items li span {
+.panoply-item-row {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 3px 4px;
+    background: rgba(255, 255, 255, 0.035);
+    border-radius: 4px;
+}
+
+.panoply-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 216, 155, 0.16);
+    border-radius: 4px;
+    color: #ffd89b;
+}
+
+.panoply-item-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.panoply-item-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.panoply-item-name span {
     color: #999;
 }
 
@@ -1434,8 +1425,53 @@ body {
 }
 
 .recipe-content ul {
-    margin: 3px 0 0 14px;
+    display: grid;
+    gap: 4px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
     color: #ddd;
+}
+
+.recipe-ingredient {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 3px 4px;
+    background: rgba(255, 255, 255, 0.035);
+    border-radius: 4px;
+}
+
+.recipe-ingredient-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 216, 155, 0.16);
+    border-radius: 4px;
+    color: #ffd89b;
+}
+
+.recipe-ingredient-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.recipe-ingredient-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.recipe-ingredient-quantity {
+    color: #ffd89b;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
 .recipe-result {
@@ -1670,6 +1706,66 @@ body {
     font-size: 0.75rem;
 }
 
+.forgemage-modifiers {
+    display: grid;
+    gap: 5px;
+}
+
+.forgemage-row,
+.forgemage-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px 30px;
+    align-items: center;
+    gap: 4px;
+}
+
+.forgemage-row select,
+.forgemage-row input,
+.forgemage-add-row select,
+.forgemage-add-row input {
+    width: 100%;
+    min-width: 0;
+    padding: 5px;
+    border: 1px solid rgba(255, 216, 155, 0.3);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #eee;
+    font-size: 0.65rem;
+}
+
+.forgemage-row button,
+.forgemage-add-row button {
+    min-height: 27px;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #ffd966, #b8860b);
+    color: #1a1a2e;
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+
+.forgemage-row button {
+    background: rgba(255, 68, 68, 0.3);
+    color: #ffaaaa;
+}
+
+.forgemage-empty {
+    color: #999;
+    font-size: 0.7rem;
+}
+
+.stuff-character-display .equipment-item-forgemaged {
+    border-color: rgba(111, 226, 185, 0.95);
+    box-shadow: inset 0 0 0 1px rgba(111, 226, 185, 0.35), 0 0 10px rgba(111, 226, 185, 0.35);
+}
+
+.stuff-character-display .equipment-item-forgemaged:hover {
+    border-color: #6fe2b9;
+    background: rgba(111, 226, 185, 0.14);
+}
+
 /* ==================== TOAST ==================== */
 .toast {
     position: fixed;
@@ -1849,10 +1945,6 @@ body {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     
-    .stats-double-column {
-        grid-template-columns: 1fr;
-    }
-    
     .equipement-grid.mode-card {
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     }
@@ -1871,10 +1963,6 @@ body {
         width: 100%;
         height: 380px;
         max-height: 380px;
-    }
-    
-    #equippedSlotsList {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
     }
     
     .search-filters {
@@ -1994,6 +2082,11 @@ body {
 
 /* Mobiles */
 @media (max-width: 480px) {
+    .resist-grid-set {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
     .header h1 {
         font-size: 0.9rem;
     }
@@ -2001,23 +2094,6 @@ body {
     .tab-btn {
         padding: 3px 8px;
         font-size: 9px;
-    }
-    
-    #equippedSlotsList {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    
-    .slot-name {
-        font-size: 8px;
-    }
-    
-    .slot-item-name {
-        font-size: 7px;
-    }
-    
-    .slot-icon-small {
-        width: 30px;
-        height: 30px;
     }
     
     .stat-detail {
