@@ -13,7 +13,7 @@ const {
     getCategorieDisplayName,
     getItemCategorie
 } = dataModule;
-const { hydrateAllEquipementsFromDofusDB, getPanoplieBonusDetails, getPanoplieItems, getPanoplieCatalog, getItemRecipeDetails } = syncModule;
+const { hydrateAllEquipementsFromDofusDB, getPanoplieBonusDetails, getPanoplieItems, getPanoplieCatalog, getItemRecipeDetails, getDofusDbBreeds, getDofusDbBreedSpells } = syncModule;
 
 // ==================== ÉTAT ====================
 let userInventory = [];
@@ -1314,6 +1314,125 @@ function displayEquippedCharacter() {
     }
 }
 
+function getSpellLevelForCharacter(spell) {
+    const characterLevel = Number(document.getElementById('stuffCharacterLevel')?.textContent) || 200;
+    const levels = [...(spell.levels || [])].sort((first, second) => Number(first.grade) - Number(second.grade));
+    return levels.filter(level => Number(level.minPlayerLevel) <= characterLevel).at(-1) || levels[0] || null;
+}
+
+function renderClassSpells(spells) {
+    const list = document.getElementById('classSpellsList');
+    if (!list) return;
+
+    if (!spells.length) {
+        list.innerHTML = '<p class="class-spells-empty">Aucun sort disponible pour cette classe.</p>';
+        return;
+    }
+
+    list.innerHTML = spells.map(spell => {
+        const name = spell.name?.fr || spell.name?.en || 'Sort sans nom';
+        const description = spell.description?.fr || '';
+        const level = getSpellLevelForCharacter(spell);
+        const levelMeta = level
+            ? `Niv. ${Number(level.minPlayerLevel) || 1} · ${Number(level.apCost) || 0} PA · Portée ${Number(level.minRange) || 0}-${Number(level.range) || 0}`
+            : 'Niveau et portée indisponibles';
+        const image = spell.img || `https://api.dofusdb.fr/img/spells/sort_${spell.iconId || spell.id}.png`;
+
+        return `<details class="class-spell-entry" data-search="${escapeHtml(`${name} ${description}`.toLowerCase())}">
+            <summary><img src="${escapeHtml(image)}" alt="" loading="lazy" onerror="this.hidden=true"><span class="class-spell-title"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(levelMeta)}</small></span><span class="class-spell-chevron" aria-hidden="true">⌄</span></summary>
+            ${description ? `<p class="class-spell-description">${escapeHtml(description)}</p>` : ''}
+        </details>`;
+    }).join('');
+}
+
+async function openClassSpellsModal(breed) {
+    const modal = document.getElementById('modalClassSpells');
+    const title = document.getElementById('classSpellsTitle');
+    const list = document.getElementById('classSpellsList');
+    const search = document.getElementById('classSpellsSearch');
+    if (!modal || !title || !list) return;
+
+    title.textContent = `${breed.shortName.fr} · Sorts`;
+    list.innerHTML = '<p class="class-spells-empty">Chargement des sorts...</p>';
+    if (search) search.value = '';
+    modal.classList.add('active');
+
+    try {
+        const spells = await getDofusDbBreedSpells(breed.id);
+        renderClassSpells(spells);
+        title.textContent = `${breed.shortName.fr} · Sorts (${spells.length})`;
+    } catch (error) {
+        console.warn('Impossible de charger les sorts DofusDB', error);
+        list.innerHTML = '<p class="class-spells-empty">Impossible de charger les sorts. Vérifie la connexion puis réessaie.</p>';
+    }
+}
+
+function initCharacterClasses() {
+    const select = document.getElementById('stuffCharacterClass');
+    const spellsButton = document.getElementById('stuffViewSpellsBtn');
+    const modal = document.getElementById('modalClassSpells');
+    const search = document.getElementById('classSpellsSearch');
+    if (!select || !spellsButton || !modal) return;
+
+    let breeds = [];
+    select.disabled = true;
+    spellsButton.disabled = true;
+    getDofusDbBreeds().then(catalog => {
+        breeds = catalog;
+        select.innerHTML = '<option value="">Choisir une classe...</option>' + breeds.map(breed =>
+            `<option value="${Number(breed.id)}">${escapeHtml(breed.shortName.fr)}</option>`
+        ).join('');
+        const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+        select.value = characterData.classId ? String(characterData.classId) : '';
+        select.disabled = false;
+        select.dispatchEvent(new Event('change'));
+    }).catch(error => {
+        console.warn('Impossible de charger les classes DofusDB', error);
+        select.innerHTML = '<option value="">Classes indisponibles</option>';
+        select.title = 'Impossible de joindre DofusDB';
+    });
+
+    select.addEventListener('change', () => {
+        const breed = breeds.find(entry => String(entry.id) === select.value);
+        const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+        if (breed) {
+            characterData.classId = Number(breed.id);
+            characterData.className = breed.shortName.fr;
+            spellsButton.disabled = false;
+            spellsButton.textContent = `Sorts (${breed.breedSpellsId.length})`;
+        } else {
+            delete characterData.classId;
+            delete characterData.className;
+            spellsButton.disabled = true;
+            spellsButton.textContent = 'Sorts';
+        }
+        localStorage.setItem('dofusCharacterData', JSON.stringify(characterData));
+    });
+
+    spellsButton.addEventListener('click', () => {
+        const breed = breeds.find(entry => String(entry.id) === select.value);
+        if (breed) openClassSpellsModal(breed);
+    });
+
+    modal.querySelector('[data-class-spells-close]')?.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', event => {
+        if (event.target === modal) modal.classList.remove('active');
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') modal.classList.remove('active');
+    });
+    search?.addEventListener('input', () => {
+        const query = search.value.trim().toLocaleLowerCase('fr');
+        modal.querySelectorAll('.class-spell-entry').forEach(entry => {
+            entry.hidden = query && !entry.dataset.search.includes(query);
+        });
+    });
+}
+
+window.closeClassSpellsModal = function() {
+    document.getElementById('modalClassSpells')?.classList.remove('active');
+};
+
 function getFilteredEquipementsProfil() {
     let items = [...userInventory];
     if (currentCategory !== "all") items = items.filter(item => item.categorie === currentCategory);
@@ -2379,6 +2498,7 @@ displayInventory();
 displayEquipementsBdd();
 updateCharacterSheet();
 updateFooterStats();
+initCharacterClasses();
 
 // Déclenchement du chargement des données depuis l'API
 refreshFromDofusDB();
