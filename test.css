@@ -310,6 +310,43 @@ body {
     overflow-wrap: anywhere;
 }
 
+.stuff-character-display .character-class-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.stuff-character-display .character-class-controls select,
+.stuff-character-display .character-class-controls button {
+    min-width: 0;
+    max-width: 100%;
+    padding: 5px 7px;
+    border: 1px solid rgba(255, 217, 102, 0.5);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #eee;
+    font-size: 10px;
+}
+
+.stuff-character-display .character-class-controls select {
+    flex: 1 1 110px;
+}
+
+.stuff-character-display .character-class-controls button {
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #ffd966, #b8860b);
+    color: #1a1a2e;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.stuff-character-display .character-class-controls button:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
 .stuff-character-display .stuff-character-rename {
     display: flex;
     flex-wrap: wrap;
@@ -1664,6 +1701,99 @@ body {
 
 .modal-details-body {
     padding: 12px;
+}
+
+.class-spells-modal-content {
+    width: min(92%, 680px);
+    max-width: 680px;
+    max-height: 86vh;
+}
+
+.class-spells-search {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 216, 155, 0.45);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.35);
+    color: #eee;
+    font: inherit;
+}
+
+.class-spells-list {
+    display: grid;
+    gap: 5px;
+}
+
+.class-spell-entry {
+    border: 1px solid rgba(255, 216, 155, 0.2);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.class-spell-entry[hidden] {
+    display: none;
+}
+
+.class-spell-entry summary {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 48px;
+    padding: 6px 8px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.class-spell-entry summary::-webkit-details-marker {
+    display: none;
+}
+
+.class-spell-entry summary img {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+
+.class-spell-title {
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 3px;
+}
+
+.class-spell-title strong {
+    overflow-wrap: anywhere;
+    color: #ffe5ac;
+    font-size: 0.78rem;
+}
+
+.class-spell-title small {
+    color: #b9c3cf;
+    font-size: 0.65rem;
+}
+
+.class-spell-chevron {
+    color: #ffd89b;
+    font-size: 1.1rem;
+}
+
+.class-spell-entry[open] .class-spell-chevron {
+    transform: rotate(180deg);
+}
+
+.class-spell-description {
+    padding: 0 10px 9px 51px;
+    color: #ddd;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.class-spells-empty {
+    padding: 12px 4px;
+    color: #c4cbd4;
+    font-size: 0.8rem;
 }
 
 .detail-image {
