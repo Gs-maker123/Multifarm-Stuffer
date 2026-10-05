@@ -13,7 +13,92 @@ const {
     getCategorieDisplayName,
     getItemCategorie
 } = dataModule;
-const { hydrateAllEquipementsFromDofusDB, getPanoplieBonusDetails, getPanoplieItems, getPanoplieCatalog, getItemRecipeDetails, getDofusDbBreeds, getDofusDbBreedSpells } = syncModule;
+const { hydrateAllEquipementsFromDofusDB, getPanoplieBonusDetails, getPanoplieItems, getPanoplieCatalog, getItemRecipeDetails } = syncModule;
+
+let fallbackBreedCatalogRequest = null;
+const fallbackBreedSpellsCache = new Map();
+
+async function getDofusDbBreedsFallback() {
+    if (fallbackBreedCatalogRequest) return fallbackBreedCatalogRequest;
+
+    fallbackBreedCatalogRequest = (async () => {
+        const params = new URLSearchParams({ lang: 'fr', '$limit': '50', '$sort[sortIndex]': '1' });
+        const response = await fetch(`https://api.dofusdb.fr/breeds?${params}`);
+        if (!response.ok) throw new Error(`DofusDB breeds fetch failed: ${response.status}`);
+        const payload = await response.json();
+        return (payload.data || [])
+            .filter(breed => breed && Array.isArray(breed.breedSpellsId) && breed.shortName?.fr)
+            .sort((first, second) => Number(first.sortIndex || 0) - Number(second.sortIndex || 0));
+    })();
+
+    try {
+        return await fallbackBreedCatalogRequest;
+    } catch (error) {
+        fallbackBreedCatalogRequest = null;
+        throw error;
+    }
+}
+
+async function getDofusDbBreedSpellsFallback(breedId) {
+    const id = Number(breedId);
+    if (fallbackBreedSpellsCache.has(id)) return fallbackBreedSpellsCache.get(id);
+
+    const breeds = await getDofusDbBreeds();
+    const breed = breeds.find(entry => Number(entry.id) === id);
+    if (!breed) throw new Error('Classe DofusDB introuvable.');
+
+    const levels = [];
+    let skip = 0;
+    let total = Infinity;
+    while (skip < total) {
+        const params = new URLSearchParams({ lang: 'fr', spellBreed: String(id), '$limit': '50', '$skip': String(skip) });
+        const response = await fetch(`https://api.dofusdb.fr/spell-levels?${params}`);
+        if (!response.ok) throw new Error(`DofusDB spell levels fetch failed: ${response.status}`);
+        const payload = await response.json();
+        const page = payload.data || [];
+        levels.push(...page);
+        total = Number(payload.total) || levels.length;
+        if (!page.length) break;
+        skip += page.length;
+    }
+
+    const levelsBySpellId = new Map();
+    for (const level of levels) {
+        const spellId = Number(level.spellId);
+        if (!levelsBySpellId.has(spellId)) levelsBySpellId.set(spellId, []);
+        levelsBySpellId.get(spellId).push(level);
+    }
+
+    const spellIds = [...new Set(breed.breedSpellsId.map(Number))];
+    const spells = [];
+    for (let index = 0; index < spellIds.length; index += 6) {
+        const batch = spellIds.slice(index, index + 6);
+        const results = await Promise.all(batch.map(async spellId => {
+            try {
+                const response = await fetch(`https://api.dofusdb.fr/spells/${spellId}?lang=fr`);
+                if (!response.ok) return null;
+                const spell = await response.json();
+                return {
+                    ...spell,
+                    levels: (levelsBySpellId.get(Number(spell.id)) || []).sort((first, second) => Number(first.grade) - Number(second.grade))
+                };
+            } catch {
+                return null;
+            }
+        }));
+        spells.push(...results.filter(Boolean));
+    }
+
+    fallbackBreedSpellsCache.set(id, spells);
+    return spells;
+}
+
+const getDofusDbBreeds = typeof syncModule.getDofusDbBreeds === 'function'
+    ? syncModule.getDofusDbBreeds
+    : getDofusDbBreedsFallback;
+const getDofusDbBreedSpells = typeof syncModule.getDofusDbBreedSpells === 'function'
+    ? syncModule.getDofusDbBreedSpells
+    : getDofusDbBreedSpellsFallback;
 
 // ==================== ÉTAT ====================
 let userInventory = [];
