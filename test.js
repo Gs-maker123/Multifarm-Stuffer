@@ -4,8 +4,8 @@ const dataModule = await import(`./data/index.js?cache=${cacheBuster}`);
 const syncModule = await import(`./data/dofusdbSync.js?cache=${cacheBuster}`);
 
 const {
-    equipementsData,
     categorieNames,
+    equipementsData,
     slotsConfig,
     getAllEquipements,
     getEquipementsByCategorie,
@@ -51,6 +51,57 @@ let parchotageStats = {
     sagesse: 0
 };
 
+const CHARACTER_POINT_KEYS = ['force', 'agilite', 'chance', 'intelligence', 'sagesse', 'vita'];
+const TIERED_CHARACTER_POINT_KEYS = new Set(['force', 'agilite', 'chance', 'intelligence']);
+const CHARACTER_POINTS_STORAGE_KEY = 'dofusCharacteristicPoints';
+let characteristicPoints = loadCharacteristicPoints();
+const EQUIPMENT_FORGEMAGE_STORAGE_KEY = 'dofusEquipmentForgemage';
+const FORGEMAGE_STATS = [
+    { path: 'vita', label: 'Vitalité' },
+    { path: 'sagesse', label: 'Sagesse' },
+    { path: 'caracteristiques.force', label: 'Force' },
+    { path: 'caracteristiques.agilite', label: 'Agilité' },
+    { path: 'caracteristiques.chance', label: 'Chance' },
+    { path: 'caracteristiques.intelligence', label: 'Intelligence' },
+    { path: 'caracteristiques.puissance', label: 'Puissance' },
+    { path: 'pa', label: 'PA' },
+    { path: 'pm', label: 'PM' },
+    { path: 'portee', label: 'Portée' },
+    { path: 'prospection', label: 'Prospection' },
+    { path: 'initiative', label: 'Initiative' },
+    { path: 'critique', label: 'Coups critiques' },
+    { path: 'doCri', label: 'Dommages critiques' },
+    { path: 'soin', label: 'Soin' },
+    { path: 'tacle', label: 'Tacle' },
+    { path: 'fuite', label: 'Fuite' },
+    { path: 'esqPA', label: 'Esquive PA' },
+    { path: 'esqPM', label: 'Esquive PM' },
+    { path: 'retPA', label: 'Retrait PA' },
+    { path: 'retPM', label: 'Retrait PM' },
+    { path: 'doNeutre', label: 'Dommages neutre' },
+    { path: 'doTerre', label: 'Dommages terre' },
+    { path: 'doFeu', label: 'Dommages feu' },
+    { path: 'doEau', label: 'Dommages eau' },
+    { path: 'doAir', label: 'Dommages air' },
+    { path: 'dommage', label: 'Dommages' },
+    { path: 'doPou', label: 'Dommages poussée' },
+    { path: 'doPerArme', label: '% Dommages armes' },
+    { path: 'doSort', label: '% Dommages sorts' },
+    { path: 'doMelee', label: '% Dommages mêlée' },
+    { path: 'doDist', label: '% Dommages distance' },
+    { path: 'resistance.neutre', label: 'Résistance neutre' },
+    { path: 'resistance.terre', label: 'Résistance terre' },
+    { path: 'resistance.feu', label: 'Résistance feu' },
+    { path: 'resistance.eau', label: 'Résistance eau' },
+    { path: 'resistance.air', label: 'Résistance air' },
+    { path: 'resistance.cri', label: 'Résistance critique' },
+    { path: 'resistance.melee', label: 'Résistance mêlée' },
+    { path: 'resistance.armes', label: 'Résistance armes' },
+    { path: 'resistance.pou', label: 'Résistance poussée' },
+    { path: 'resistance.dist', label: 'Résistance distance' }
+];
+let equipmentForgemage = loadEquipmentForgemage();
+
 // Limites
 const MAX_PA = 12;
 const MAX_PM = 6;
@@ -74,6 +125,170 @@ slotsConfig.forEach(slot => { currentSet[slot.id] = null; });
 function formatKamas(value) {
     if (!value && value !== 0) return '0';
     return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function loadCharacteristicPoints() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CHARACTER_POINTS_STORAGE_KEY) || '{}');
+        return normalizeCharacteristicPoints(saved);
+    } catch {
+        return normalizeCharacteristicPoints();
+    }
+}
+
+function normalizeCharacteristicPoints(points = {}) {
+    return Object.fromEntries(CHARACTER_POINT_KEYS.map(key => [key, Math.max(0, Math.floor(Number(points[key]) || 0))]));
+}
+
+function loadEquipmentForgemage() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(EQUIPMENT_FORGEMAGE_STORAGE_KEY) || '{}');
+        return saved && typeof saved === 'object' ? saved : {};
+    } catch {
+        return {};
+    }
+}
+
+function getEquipmentForgemageModifiers(slotId, itemId) {
+    const entry = equipmentForgemage[slotId];
+    return entry && String(entry.itemId) === String(itemId) && Array.isArray(entry.modifiers)
+        ? entry.modifiers
+        : [];
+}
+
+function saveEquipmentForgemageModifiers(slotId, itemId, modifiers) {
+    if (modifiers.length) {
+        equipmentForgemage[slotId] = { itemId, modifiers };
+    } else {
+        delete equipmentForgemage[slotId];
+    }
+    localStorage.setItem(EQUIPMENT_FORGEMAGE_STORAGE_KEY, JSON.stringify(equipmentForgemage));
+}
+
+function captureTemplateConfiguration() {
+    const set = {};
+    const equipmentForgemage = {};
+    for (const slot of slotsConfig) {
+        const item = currentSet[slot.id];
+        if (!item) continue;
+
+        set[slot.id] = item;
+        const modifiers = getEquipmentForgemageModifiers(slot.id, item.id);
+        if (modifiers.length) {
+            equipmentForgemage[slot.id] = {
+                itemId: item.id,
+                modifiers: modifiers.map(modifier => ({ ...modifier }))
+            };
+        }
+    }
+
+    return {
+        set,
+        forgePA,
+        forgePM,
+        forgePO,
+        parchotageStats: { ...parchotageStats },
+        characteristicPoints: { ...characteristicPoints },
+        equipmentForgemage
+    };
+}
+
+function addEquipmentForgemageToTotal(total, slotId, item) {
+    for (const modifier of getEquipmentForgemageModifiers(slotId, item.id)) {
+        const value = Number(modifier.value) || 0;
+        const [group, key] = modifier.stat.split('.');
+        if (group === 'caracteristiques' && total[key] !== undefined) {
+            total[key] += value;
+        } else if (group === 'resistance' && total.resistance[key] !== undefined) {
+            total.resistance[key] += value;
+        } else if (!key && total[group] !== undefined) {
+            total[group] += value;
+        }
+    }
+}
+
+function getCharacterPointBudget() {
+    let characterData = {};
+    try {
+        characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+    } catch {
+        characterData = {};
+    }
+    const displayedLevel = Number(document.getElementById('stuffCharacterLevel')?.textContent);
+    const level = Math.max(1, Math.floor(Number(characterData.level) || displayedLevel || 200));
+    return Math.max(0, (level - 1) * 5);
+}
+
+function getCharacteristicPointCost(stat, amount) {
+    const value = Math.max(0, Math.floor(Number(amount) || 0));
+    if (stat === 'sagesse') return value * 3;
+    if (!TIERED_CHARACTER_POINT_KEYS.has(stat)) return value;
+    if (value <= 100) return value;
+    if (value <= 200) return 100 + (value - 100) * 2;
+    if (value <= 300) return 300 + (value - 200) * 3;
+    return 600 + (value - 300) * 4;
+}
+
+function getMaxCharacteristicForBudget(stat, budget) {
+    const points = Math.max(0, Math.floor(budget));
+    if (stat === 'sagesse') return Math.floor(points / 3);
+    if (!TIERED_CHARACTER_POINT_KEYS.has(stat) || points <= 100) return points;
+    if (points <= 300) return 100 + Math.floor((points - 100) / 2);
+    if (points <= 600) return 200 + Math.floor((points - 300) / 3);
+    return 300 + Math.floor((points - 600) / 4);
+}
+
+function updateCharacterPointAllocationDisplay() {
+    const panel = document.getElementById('characterPointAllocation');
+    if (!panel) return;
+
+    const budget = getCharacterPointBudget();
+    const spent = CHARACTER_POINT_KEYS.reduce((total, key) => total + getCharacteristicPointCost(key, characteristicPoints[key]), 0);
+    const remaining = budget - spent;
+    const remainingElement = document.getElementById('characterPointsRemaining');
+    const budgetElement = document.getElementById('characterPointsBudget');
+    if (remainingElement) remainingElement.textContent = remaining;
+    if (budgetElement) budgetElement.textContent = budget;
+    panel.classList.toggle('over-budget', remaining < 0);
+
+    panel.querySelectorAll('[data-character-point]').forEach(input => {
+        const key = input.dataset.characterPoint;
+        const value = characteristicPoints[key] || 0;
+        const otherSpent = spent - getCharacteristicPointCost(key, value);
+        input.value = value;
+        input.max = Math.max(value, getMaxCharacteristicForBudget(key, budget - otherSpent));
+    });
+}
+
+function initCharacterPointAllocation() {
+    const panel = document.getElementById('characterPointAllocation');
+    if (!panel) return;
+    updateCharacterPointAllocationDisplay();
+    if (panel.dataset.eventsBound) return;
+
+    panel.addEventListener('change', event => {
+        const input = event.target.closest('[data-character-point]');
+        if (!input) return;
+
+        const key = input.dataset.characterPoint;
+        const previousValue = characteristicPoints[key] || 0;
+        const nextValue = Math.max(0, Math.floor(Number(input.value) || 0));
+        const otherSpent = CHARACTER_POINT_KEYS
+            .filter(stat => stat !== key)
+            .reduce((total, stat) => total + getCharacteristicPointCost(stat, characteristicPoints[stat]), 0);
+        if (getCharacteristicPointCost(key, nextValue) > getCharacteristicPointCost(key, previousValue)
+            && otherSpent + getCharacteristicPointCost(key, nextValue) > getCharacterPointBudget()) {
+            input.value = previousValue;
+            showToast('⚠️ Cette attribution dépasse les points disponibles.');
+            return;
+        }
+
+        characteristicPoints[key] = nextValue;
+        localStorage.setItem(CHARACTER_POINTS_STORAGE_KEY, JSON.stringify(characteristicPoints));
+        updateCharacterPointAllocationDisplay();
+        updateCharacterSheet();
+    });
+    panel.dataset.eventsBound = 'true';
 }
 
 function escapeHtml(text) {
@@ -128,7 +343,33 @@ function displayPanoplieInfo(item) {
     `;
 }
 
-function showDetailsModal(item) {
+function renderEquipmentForgemage(slotId, item) {
+    if (!slotId || !item) return '';
+
+    const modifiers = getEquipmentForgemageModifiers(slotId, item.id);
+    const renderOptions = selectedStat => FORGEMAGE_STATS.map(stat =>
+        `<option value="${stat.path}" ${stat.path === selectedStat ? 'selected' : ''}>${escapeHtml(stat.label)}</option>`
+    ).join('');
+    const modifierRows = modifiers.map((modifier, index) => `
+        <div class="forgemage-row">
+            <select data-forgemage-field="stat" data-index="${index}">${renderOptions(modifier.stat)}</select>
+            <input type="number" step="1" data-forgemage-field="value" data-index="${index}" value="${escapeHtml(String(modifier.value))}" aria-label="Valeur du bonus">
+            <button type="button" data-forgemage-action="remove" data-index="${index}" aria-label="Supprimer ce bonus">×</button>
+        </div>
+    `).join('');
+
+    return `<div class="detail-section forgemage-editor" data-forgemage-slot="${escapeHtml(slotId)}" data-forgemage-item-id="${escapeHtml(String(item.id))}">
+        <h4>✨ Forgemagie</h4>
+        <div class="forgemage-modifiers">${modifierRows || '<p class="forgemage-empty">Aucun bonus personnalisé.</p>'}</div>
+        <div class="forgemage-add-row">
+            <select data-forgemage-new-stat aria-label="Caractéristique à ajouter">${renderOptions('vita')}</select>
+            <input type="number" step="1" value="1" data-forgemage-new-value aria-label="Valeur du nouveau bonus">
+            <button type="button" data-forgemage-action="add">Ajouter</button>
+        </div>
+    </div>`;
+}
+
+function showDetailsModal(item, slotId = null) {
     const modal = document.getElementById('modalDetails');
     const title = document.getElementById('detailTitle');
     const content = document.getElementById('detailContent');
@@ -137,6 +378,7 @@ function showDetailsModal(item) {
     title.textContent = item.nom;
     const imagePath = getImagePath(item);
     const defaultImage = 'assets/images/equipements/default.png';
+    const equippedSlotId = slotId || slotsConfig.find(slot => currentSet[slot.id]?.id === item.id)?.id || null;
     const stats = item.stats;
     const caracs = stats.caracteristiques;
 
@@ -192,6 +434,11 @@ function showDetailsModal(item) {
         resistanceRows.push(detailLine('Feu', stats.resistance.feu, (value) => `${value}%`));
         resistanceRows.push(detailLine('Eau', stats.resistance.eau, (value) => `${value}%`));
         resistanceRows.push(detailLine('Air', stats.resistance.air, (value) => `${value}%`));
+        resistanceRows.push(detailLine('Critiques', stats.resistance.cri, (value) => `${value}%`));
+        resistanceRows.push(detailLine('Mêlée', stats.resistance.melee, (value) => `${value}%`));
+        resistanceRows.push(detailLine('Armes', stats.resistance.armes, (value) => `${value}%`));
+        resistanceRows.push(detailLine('Poussée', stats.resistance.pou, (value) => `${value}%`));
+        resistanceRows.push(detailLine('Distance', stats.resistance.dist, (value) => `${value}%`));
     }
 
     const resistanceHtml = resistanceRows.some(Boolean)
@@ -201,9 +448,10 @@ function showDetailsModal(item) {
     const characteristicsHtml = characteristicsRows
         ? `<div class="detail-section"><h4>📊 Caractéristiques</h4>${characteristicsRows}</div>`
         : '';
-    const recipeDetailsHtml = renderRecipeDetails(item, true);
+    const recipeDetailsHtml = renderRecipeDetails(item);
+    const forgemageHtml = renderEquipmentForgemage(equippedSlotId, item);
     const panoplieId = item.panoplie?.id || item.itemSetId;
-    const panoplieBonusHtml = renderPanoplieBonuses(item, true);
+    const panoplieBonusHtml = renderPanoplieBonuses(item);
     const panoplieItemsHtml = panoplieId
         ? `<div class="detail-section" id="detailPanoplyItems" data-panoplie-id="${escapeHtml(String(panoplieId))}"><h4>✨ Objets de la panoplie</h4><div class="detail-panoply-items">Chargement...</div></div>`
         : '';
@@ -214,14 +462,76 @@ function showDetailsModal(item) {
         <div class="detail-row"><span class="detail-label">💰 Valeur</span><span class="detail-value">${formatKamas(item.valeurK || 0)} Kamas</span></div>
         ${characteristicsHtml}
         ${resistanceHtml}
+        ${forgemageHtml}
         ${displayPanoplieInfo(item)}
         ${panoplieBonusHtml}
         ${panoplieItemsHtml}
         ${recipeDetailsHtml}`;
-    const recipeDetails = content.querySelector('details[data-recipe-item-id]');
-    if (recipeDetails) loadRecipeDetails(recipeDetails);
-    const panoplieBonusDetails = content.querySelector('details[data-panoplie-id]');
-    if (panoplieBonusDetails) loadPanoplieBonuses(panoplieBonusDetails);
+    if (!content.dataset.detailsBound) {
+        content.addEventListener('toggle', event => {
+            const details = event.target;
+            if (!details.open) return;
+            if (details.matches('details[data-recipe-item-id]')) loadRecipeDetails(details);
+            if (details.matches('details[data-panoplie-id]')) loadPanoplieBonuses(details);
+        }, true);
+        const saveEditorChanges = (editor, modifiers) => {
+            const slotId = editor.dataset.forgemageSlot;
+            const item = currentSet[slotId];
+            if (!item || String(item.id) !== String(editor.dataset.forgemageItemId)) return;
+            saveEquipmentForgemageModifiers(slotId, item.id, modifiers);
+            editor.outerHTML = renderEquipmentForgemage(slotId, item);
+            displayEquippedCharacter();
+            updateCharacterSheet();
+        };
+
+        content.addEventListener('click', event => {
+            const button = event.target.closest('[data-forgemage-action]');
+            if (!button) return;
+            const editor = button.closest('.forgemage-editor');
+            if (!editor) return;
+
+            const slotId = editor.dataset.forgemageSlot;
+            const item = currentSet[slotId];
+            if (!item || String(item.id) !== String(editor.dataset.forgemageItemId)) return;
+            const modifiers = [...getEquipmentForgemageModifiers(slotId, item.id)];
+
+            if (button.dataset.forgemageAction === 'remove') {
+                modifiers.splice(Number(button.dataset.index), 1);
+            } else if (button.dataset.forgemageAction === 'add') {
+                const stat = editor.querySelector('[data-forgemage-new-stat]')?.value;
+                const value = Number(editor.querySelector('[data-forgemage-new-value]')?.value);
+                if (!FORGEMAGE_STATS.some(option => option.path === stat) || !Number.isFinite(value) || value === 0) return;
+                modifiers.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, stat, value });
+            }
+
+            saveEditorChanges(editor, modifiers);
+        });
+
+        content.addEventListener('change', event => {
+            const field = event.target.closest('[data-forgemage-field]');
+            const editor = field?.closest('.forgemage-editor');
+            if (!field || !editor) return;
+
+            const slotId = editor.dataset.forgemageSlot;
+            const item = currentSet[slotId];
+            if (!item || String(item.id) !== String(editor.dataset.forgemageItemId)) return;
+            const index = Number(field.dataset.index);
+            const modifiers = [...getEquipmentForgemageModifiers(slotId, item.id)];
+            if (!modifiers[index]) return;
+
+            if (field.dataset.forgemageField === 'stat') {
+                if (!FORGEMAGE_STATS.some(option => option.path === field.value)) return;
+                modifiers[index].stat = field.value;
+            } else {
+                const value = Number(field.value);
+                if (!Number.isFinite(value) || value === 0) return;
+                modifiers[index].value = value;
+            }
+
+            saveEditorChanges(editor, modifiers);
+        });
+        content.dataset.detailsBound = 'true';
+    }
     const panoplieItems = content.querySelector('#detailPanoplyItems');
     if (panoplieItems) loadPanoplieItems(panoplieItems, panoplieId);
     modal.classList.add('active');
@@ -238,21 +548,26 @@ function mergeSavedItemWithRegistry(savedItem, registryItem) {
         return savedItem;
     }
 
+    const mergeStatValues = (registryValues = {}, savedValues = {}) => {
+        const merged = { ...registryValues, ...savedValues };
+        for (const [key, value] of Object.entries(registryValues)) {
+            if (Number(value) !== 0 && Number(savedValues[key] || 0) === 0) {
+                merged[key] = value;
+            }
+        }
+        return merged;
+    };
+
+    const registryStats = registryItem.stats || {};
+    const savedStats = savedItem?.stats || {};
+    const stats = mergeStatValues(registryStats, savedStats);
+    stats.caracteristiques = mergeStatValues(registryStats.caracteristiques, savedStats.caracteristiques);
+    stats.resistance = mergeStatValues(registryStats.resistance, savedStats.resistance);
+
     return {
         ...registryItem,
         valeurK: savedItem?.valeurK ?? registryItem?.valeurK ?? 0,
-        stats: {
-            ...registryItem.stats,
-            ...savedItem?.stats,
-            caracteristiques: {
-                ...registryItem.stats?.caracteristiques,
-                ...savedItem?.stats?.caracteristiques
-            },
-            resistance: {
-                ...registryItem.stats?.resistance,
-                ...savedItem?.stats?.resistance
-            }
-        }
+        stats
     };
 }
 
@@ -662,6 +977,7 @@ async function updateCharacterSheet() {
             total.intelligence += item.stats.caracteristiques?.intelligence || 0;
             total.chance += item.stats.caracteristiques?.chance || 0;
             total.agilite += item.stats.caracteristiques?.agilite || 0;
+            total.puissance += item.stats.caracteristiques?.puissance || 0;
             total.initiative += item.stats.initiative || 0;
             total.critique += item.stats.critique || 0;
             total.soin += item.stats.soin || 0;
@@ -696,6 +1012,7 @@ async function updateCharacterSheet() {
                 total.resistance.pou += item.stats.resistance.pou || 0;
                 total.resistance.dist += item.stats.resistance.dist || 0;
             }
+            addEquipmentForgemageToTotal(total, slot.id, item);
         }
     }
     
@@ -724,6 +1041,24 @@ async function updateCharacterSheet() {
     } catch (e) {
         console.warn('Erreur calcul bonus panoplies:', e);
     }
+
+    total.force += characteristicPoints.force;
+    total.agilite += characteristicPoints.agilite;
+    total.chance += characteristicPoints.chance;
+    total.intelligence += characteristicPoints.intelligence;
+    total.sagesse += characteristicPoints.sagesse;
+    total.vita += characteristicPoints.vita;
+
+    total.initiative += total.force + total.chance + total.intelligence + total.agilite;
+    total.tacle += Math.floor(total.agilite / 10);
+    total.fuite += Math.floor(total.agilite / 10);
+    total.pods += Math.floor(total.force / 10);
+    total.soin += Math.floor(total.intelligence / 10);
+    total.prospection += Math.floor(total.chance / 10);
+    total.retPA += Math.floor(total.sagesse / 10);
+    total.retPM += Math.floor(total.sagesse / 10);
+    total.esqPA += Math.floor(total.sagesse / 10);
+    total.esqPM += Math.floor(total.sagesse / 10);
     
     baseStatsData = {
         vita: 1050 + total.vita,
@@ -763,6 +1098,7 @@ async function updateCharacterSheet() {
         resistance: total.resistance
     };
     updateTotalStatsDisplay();
+    updateCharacterPointAllocationDisplay();
 }
 
 function updateTotalStatsDisplay() {
@@ -801,7 +1137,6 @@ function updateTotalStatsDisplay() {
         charDoSort: baseStatsData.doSort,
         charDoMelee: baseStatsData.doMelee,
         charDoDist: baseStatsData.doDist,
-        bonusPA: `+${totalPa}`, bonusPM: `+${totalPm}`, bonusPO: `+${totalPortee}`,
         resNeutre: (baseStatsData.resistance.neutre || 0) + '%',
         resTerre: (baseStatsData.resistance.terre || 0) + '%',
         resFeu: (baseStatsData.resistance.feu || 0) + '%',
@@ -838,28 +1173,6 @@ function updateTotalStatsDisplay() {
 
 // ==================== AFFICHAGE ====================
 function displayEquippedSlots() {
-    const container = document.getElementById('equippedSlotsList');
-    if (!container) return;
-    
-    const sortedSlots = [...slotsConfig].sort((a, b) => {
-        if (a.id === 'anneaux1') return -1;
-        if (b.id === 'anneaux1') return 1;
-        if (a.id === 'anneaux2') return -1;
-        if (b.id === 'anneaux2') return 1;
-        return 0;
-    });
-    
-    container.innerHTML = sortedSlots.map(slot => {
-        const item = currentSet[slot.id];
-        if (item) {
-            const imagePath = getImagePath(item);
-            const defaultImage = 'assets/images/equipements/default.png';
-            return `<div class="slot-item"><div class="slot-info"><div class="slot-icon-small"><img src="${imagePath}" alt="${item.nom}" onerror="this.src='${defaultImage}'"></div><div><div class="slot-name">${slot.nom}</div><div class="slot-item-name">${item.nom}</div></div></div><div class="slot-actions"><button class="slot-details-btn-small" onclick="showDetailsModalFromId(${item.id})">🔍</button><button class="remove-slot-small" onclick="unequipItem('${slot.id}')" title="Déséquiper">−</button></div></div>`;
-        } else {
-            return `<div class="slot-item slot-item-empty"><div class="slot-info"><div class="slot-icon-small"><span style="font-size:16px;">${slot.emoji}</span></div><div><div class="slot-name">${slot.nom}</div><div class="slot-empty-text">—</div></div></div><div class="slot-actions"><button class="slot-details-btn-small" disabled style="opacity:0.3;">🔍</button><button class="remove-slot-small" disabled style="opacity:0.3;">Vide</button></div></div>`;
-        }
-    }).join('');
-
     displayEquippedCharacter();
 }
 
@@ -891,8 +1204,10 @@ function displayEquippedCharacter() {
             const content = item
                 ? `<img src="${escapeHtml(getImagePath(item))}" alt="${escapeHtml(item.nom)}" onerror="this.src='assets/images/equipements/default.png'"><div class="equipment-slot-actions"><button type="button" data-equipment-action="details" title="Détails de ${escapeHtml(item.nom)}" aria-label="Détails de ${escapeHtml(item.nom)}">🔍</button><button type="button" data-equipment-action="remove" title="Déséquiper ${escapeHtml(item.nom)}" aria-label="Déséquiper ${escapeHtml(item.nom)}">−</button></div>`
                 : `<div class="equipment-item-empty-content"><span style="font-size: 24px;">${slot.emoji}</span><span style="font-size: 8px; margin-top: 3px;">${escapeHtml(label)}</span></div>`;
+            const hasForgemage = item && getEquipmentForgemageModifiers(slotId, item.id)
+                .some(modifier => Number(modifier.value) !== 0);
 
-            return `<div class="equipment-item" data-slot-id="${slot.id}" title="${escapeHtml(item?.nom || slot.nom)}">${content}<div class="item-tooltip">${escapeHtml(item?.nom || slot.nom)}</div></div>${statusControl}`;
+            return `<div class="equipment-item${hasForgemage ? ' equipment-item-forgemaged' : ''}" data-slot-id="${slot.id}" title="${escapeHtml(item?.nom || slot.nom)}">${content}<div class="item-tooltip">${escapeHtml(item?.nom || slot.nom)}</div></div>${statusControl}`;
         }).join('');
     }
 
@@ -931,7 +1246,7 @@ function displayEquippedCharacter() {
                 const slotId = equipmentAction.closest('.equipment-item')?.dataset.slotId;
                 const item = currentSet[slotId];
                 if (equipmentAction.dataset.equipmentAction === 'details' && item) {
-                    showDetailsModalFromId(item.id);
+                    showDetailsModalFromId(item.id, slotId);
                 } else if (equipmentAction.dataset.equipmentAction === 'remove' && item) {
                     unequipItem(slotId);
                 }
@@ -942,7 +1257,7 @@ function displayEquippedCharacter() {
             if (equipmentItem) {
                 const slotId = equipmentItem.dataset.slotId;
                 const item = currentSet[slotId];
-                if (item) showDetailsModalFromId(item.id);
+                if (item) showDetailsModalFromId(item.id, slotId);
                 else showToast(`💡 Emplacement ${slotsConfig.find(slot => slot.id === slotId)?.nom || ''} vide.`);
                 return;
             }
@@ -1047,10 +1362,13 @@ function displayInventory() {
     updateFooterStats();
 }
 
-function showDetailsModalFromId(itemId) {
-    let item = userInventory.find(i => i.id === itemId);
-    if (!item) item = getAllEquipements().find(i => i.id === itemId);
-    if (item) showDetailsModal(item);
+function showDetailsModalFromId(itemId, slotId = null) {
+    const slottedItem = slotId ? currentSet[slotId] : null;
+    let item = slottedItem && String(slottedItem.id) === String(itemId) ? slottedItem : null;
+    if (!item) item = userInventory.find(i => String(i.id) === String(itemId));
+    if (!item) item = getAllEquipements().find(i => String(i.id) === String(itemId));
+    const equippedSlotId = slotId || slotsConfig.find(slot => String(currentSet[slot.id]?.id) === String(itemId))?.id || null;
+    if (item) showDetailsModal(item, equippedSlotId);
 }
 
 window.showDetailsModalFromId = showDetailsModalFromId;
@@ -1180,7 +1498,12 @@ function displayEquipementsBdd() {
                 hasNonZeroValue(stats.resistance.terre) ? `<div class="stat"><span>Terre</span><input type="number" class="stat-input" value="${stats.resistance.terre}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.terre', this.value)"></div>` : '',
                 hasNonZeroValue(stats.resistance.feu) ? `<div class="stat"><span>Feu</span><input type="number" class="stat-input" value="${stats.resistance.feu}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.feu', this.value)"></div>` : '',
                 hasNonZeroValue(stats.resistance.eau) ? `<div class="stat"><span>Eau</span><input type="number" class="stat-input" value="${stats.resistance.eau}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.eau', this.value)"></div>` : '',
-                hasNonZeroValue(stats.resistance.air) ? `<div class="stat"><span>Air</span><input type="number" class="stat-input" value="${stats.resistance.air}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.air', this.value)"></div>` : ''
+                hasNonZeroValue(stats.resistance.air) ? `<div class="stat"><span>Air</span><input type="number" class="stat-input" value="${stats.resistance.air}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.air', this.value)"></div>` : '',
+                hasNonZeroValue(stats.resistance.cri) ? `<div class="stat"><span>Critiques</span><input type="number" class="stat-input" value="${stats.resistance.cri}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.cri', this.value)"></div>` : '',
+                hasNonZeroValue(stats.resistance.melee) ? `<div class="stat"><span>Mêlée</span><input type="number" class="stat-input" value="${stats.resistance.melee}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.melee', this.value)"></div>` : '',
+                hasNonZeroValue(stats.resistance.dist) ? `<div class="stat"><span>Distance</span><input type="number" class="stat-input" value="${stats.resistance.dist}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.dist', this.value)"></div>` : '',
+                hasNonZeroValue(stats.resistance.pou) ? `<div class="stat"><span>Poussée</span><input type="number" class="stat-input" value="${stats.resistance.pou}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.pou', this.value)"></div>` : '',
+                hasNonZeroValue(stats.resistance.armes) ? `<div class="stat"><span>Armes</span><input type="number" class="stat-input" value="${stats.resistance.armes}" style="width: 45px;" onchange="updateStatValue(${item.id}, 'resistance.armes', this.value)"></div>` : ''
             ].join('')
             : '';
 
@@ -1198,11 +1521,24 @@ function displayEquipementsBdd() {
             renderStatInput('💧 Chance', caracs?.chance, 'caracteristiques.chance', item.id),
             renderStatInput('🍃 Agilité', caracs?.agilite, 'caracteristiques.agilite', item.id),
             renderStatInput('⚡ Puissance', caracs?.puissance, 'caracteristiques.puissance', item.id),
+            renderStatInput('Dommages neutre', stats.doNeutre, 'doNeutre', item.id),
+            renderStatInput('Dommages terre', stats.doTerre, 'doTerre', item.id),
+            renderStatInput('Dommages feu', stats.doFeu, 'doFeu', item.id),
+            renderStatInput('Dommages eau', stats.doEau, 'doEau', item.id),
+            renderStatInput('Dommages air', stats.doAir, 'doAir', item.id),
             renderStatInput('❗ Dommages critiques', stats.doCri, 'doCri', item.id),
+            renderStatInput('Dommages poussée', stats.doPou, 'doPou', item.id),
             renderStatInput('% Dommages sorts', stats.doSort, 'doSort', item.id),
             renderStatInput('% Dommages armes', stats.doPerArme, 'doPerArme', item.id),
             renderStatInput('% Dommages mêlée', stats.doMelee, 'doMelee', item.id),
             renderStatInput('% Dommages distance', stats.doDist, 'doDist', item.id),
+            renderStatInput('♾️ Tacle', stats.tacle, 'tacle', item.id),
+            renderStatInput('➖⭐ Retrait PA', stats.retPA, 'retPA', item.id),
+            renderStatInput('➖🟩 Retrait PM', stats.retPM, 'retPM', item.id),
+            renderStatInput('🦶 Fuite', stats.fuite, 'fuite', item.id),
+            renderStatInput('🦶⭐ Esquive PA', stats.esqPA, 'esqPA', item.id),
+            renderStatInput('🦶🟩 Esquive PM', stats.esqPM, 'esqPM', item.id),
+            renderStatInput('💕 Soin', stats.soin, 'soin', item.id),
             renderStatInput('⭐ PA', stats.pa, 'pa', item.id, 60),
             renderStatInput('🟩 PM', stats.pm, 'pm', item.id, 60)
         ].join('');
@@ -1218,18 +1554,27 @@ function displayEquipementsBdd() {
     grid.innerHTML = html;
 }
 
-function renderRecipeDetails(item, expanded = false) {
+function renderRecipeDetails(item) {
     const resources = item.craft?.ressources;
-    const openAttribute = expanded ? ' open' : '';
     if (Array.isArray(resources) && resources.length) {
-        const ingredients = resources.map(resource =>
-            `<li>${escapeHtml(resource.nom || resource.name || 'Ressource')} × ${escapeHtml(String(resource.quantite || resource.quantity || 1))}</li>`
-        ).join('');
-        return `<details class="recipe-details"${openAttribute}><summary>🔨 ${escapeHtml(item.craft.metier || 'Métier inconnu')} · niveau ${escapeHtml(String(item.craft.niveau || '?'))}</summary><div class="recipe-content"><ul>${ingredients}</ul></div></details>`;
+        const ingredients = resources.map(renderRecipeIngredient).join('');
+        return `<details class="recipe-details"><summary>🔨 ${escapeHtml(item.craft.metier || 'Métier inconnu')} · niveau ${escapeHtml(String(item.craft.niveau || '?'))}</summary><div class="recipe-content"><ul>${ingredients}</ul></div></details>`;
     }
 
     if (!item.hasRecipe || !Number(item.dofusdbId)) return '';
-    return `<details class="recipe-details" data-recipe-item-id="${escapeHtml(String(item.dofusdbId))}"${openAttribute}><summary>🔨 Recette</summary><div class="recipe-content">Ouvrir pour charger les ingrédients.</div></details>`;
+    return `<details class="recipe-details" data-recipe-item-id="${escapeHtml(String(item.dofusdbId))}"><summary>🔨 Recette</summary><div class="recipe-content">Ouvrir pour charger les ingrédients.</div></details>`;
+}
+
+function renderRecipeIngredient(ingredient) {
+    const name = ingredient.name || ingredient.nom || 'Ressource';
+    const quantity = ingredient.quantity || ingredient.quantite || 1;
+    const image = ingredient.image || ingredient.img || (ingredient.iconId || ingredient.id
+        ? `https://api.dofusdb.fr/img/items/${ingredient.iconId || ingredient.id}.png`
+        : '');
+    const icon = image
+        ? `<img src="${escapeHtml(image)}" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>📦</span>`
+        : '<span>📦</span>';
+    return `<li class="recipe-ingredient"><span class="recipe-ingredient-icon">${icon}</span><span class="recipe-ingredient-name">${escapeHtml(name)}</span><span class="recipe-ingredient-quantity">× ${escapeHtml(String(quantity))}</span></li>`;
 }
 
 async function loadRecipeDetails(details) {
@@ -1246,9 +1591,7 @@ async function loadRecipeDetails(details) {
 
         const level = recipe.level ? ` · niveau ${recipe.level}` : '';
         details.querySelector('summary').textContent = `🔨 ${recipe.job}${level}`;
-        const ingredients = recipe.ingredients.map(ingredient =>
-            `<li>${escapeHtml(ingredient.name)} × ${escapeHtml(String(ingredient.quantity))}</li>`
-        ).join('');
+        const ingredients = recipe.ingredients.map(renderRecipeIngredient).join('');
         content.innerHTML = `<div class="recipe-result">${escapeHtml(recipe.itemName || '')}</div><ul>${ingredients || '<li>Ingrédients non renseignés</li>'}</ul>`;
         details.dataset.loaded = 'true';
     } catch (error) {
@@ -1259,13 +1602,12 @@ async function loadRecipeDetails(details) {
     }
 }
 
-function renderPanoplieBonuses(item, expanded = false) {
+function renderPanoplieBonuses(item) {
     const panoplie = item.panoplie || (Number(item.itemSetId) > 0
         ? { id: Number(item.itemSetId), nom: `Panoplie #${item.itemSetId}` }
         : null);
     if (!panoplie) return '';
 
-    const openAttribute = expanded ? ' open' : '';
     const name = panoplie.nom || (panoplie.id ? `Panoplie #${panoplie.id}` : 'Panoplie');
     const localBonuses = panoplie.bonus;
     if (localBonuses && typeof localBonuses === 'object') {
@@ -1282,14 +1624,14 @@ function renderPanoplieBonuses(item, expanded = false) {
             ).join('');
             return rows ? `<div class="panoply-bonus-tier"><strong>${escapeHtml(pieces)} pièces</strong><ul>${rows}</ul></div>` : '';
         }).join('');
-        return `<details class="panoply-bonus-details"${openAttribute}><summary>✨ ${escapeHtml(name)} · Bonus</summary><div class="panoply-bonus-content">${tiers || 'Aucun bonus renseigné.'}</div></details>`;
+        return `<details class="panoply-bonus-details"><summary>✨ ${escapeHtml(name)} · Bonus</summary><div class="panoply-bonus-content">${tiers || 'Aucun bonus renseigné.'}</div></details>`;
     }
 
     if (!panoplie.id) {
         return `<div class="panoplie"><h4>✨ ${escapeHtml(name)}</h4></div>`;
     }
 
-    return `<details class="panoply-bonus-details" data-panoplie-id="${escapeHtml(String(panoplie.id))}"${openAttribute}><summary>✨ ${escapeHtml(name)} · Bonus</summary><div class="panoply-bonus-content">Chargement des bonus...</div></details>`;
+    return `<details class="panoply-bonus-details" data-panoplie-id="${escapeHtml(String(panoplie.id))}"><summary>✨ ${escapeHtml(name)} · Bonus</summary><div class="panoply-bonus-content">Ouvrir pour charger les bonus.</div></details>`;
 }
 
 async function loadPanoplieBonuses(details) {
@@ -1327,7 +1669,7 @@ async function loadPanoplieItems(section, panoplieId) {
             content.textContent = 'Aucun objet associé trouvé.';
             return;
         }
-        content.innerHTML = `<ul>${data.items.map(item => `<li>${escapeHtml(item.name)}${item.level ? ` <span>(niv. ${item.level})</span>` : ''}</li>`).join('')}</ul>`;
+        content.innerHTML = `<ul>${data.items.map(item => `<li class="panoply-item-row"><span class="panoply-item-icon">${item.image ? `<img src="${escapeHtml(item.image)}" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false">` : ''}<span ${item.image ? 'hidden' : ''}>📦</span></span><span class="panoply-item-name">${escapeHtml(item.name)}${item.level ? ` <span>(niv. ${item.level})</span>` : ''}</span></li>`).join('')}</ul>`;
     } catch (error) {
         content.textContent = 'Impossible de charger les objets de cette panoplie.';
         console.warn('Erreur chargement des objets de panoplie:', error);
@@ -1787,19 +2129,9 @@ function saveCurrentTemplate() {
     const template = {
         name: name,
         date: new Date().toLocaleString(),
-        set: {},
-        forgePA: forgePA,
-        forgePM: forgePM,
-        forgePO: forgePO,
-        parchotageStats: { ...parchotageStats },
+        ...captureTemplateConfiguration(),
         modified: false
     };
-    
-    for (const slot of slotsConfig) {
-        if (currentSet[slot.id]) {
-            template.set[slot.id] = currentSet[slot.id];
-        }
-    }
     
     templates.push(template);
     saveTemplates();
@@ -1811,21 +2143,11 @@ function updateExistingTemplate(index, newName = null) {
     const template = templates[index];
     
     template.date = new Date().toLocaleString();
-    template.set = {};
-    template.forgePA = forgePA;
-    template.forgePM = forgePM;
-    template.forgePO = forgePO;
-    template.parchotageStats = { ...parchotageStats };
+    Object.assign(template, captureTemplateConfiguration());
     template.modified = true;
     
     if (newName) {
         template.name = newName;
-    }
-    
-    for (const slot of slotsConfig) {
-        if (currentSet[slot.id]) {
-            template.set[slot.id] = currentSet[slot.id];
-        }
     }
     
     saveTemplates();
@@ -1874,6 +2196,19 @@ function loadTemplate(index) {
         } else {
             currentSet[slot.id] = null;
         }
+    }
+
+    if (template.characteristicPoints) {
+        characteristicPoints = normalizeCharacteristicPoints(template.characteristicPoints);
+        localStorage.setItem(CHARACTER_POINTS_STORAGE_KEY, JSON.stringify(characteristicPoints));
+        updateCharacterPointAllocationDisplay();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(template, 'equipmentForgemage')) {
+        equipmentForgemage = template.equipmentForgemage && typeof template.equipmentForgemage === 'object'
+            ? template.equipmentForgemage
+            : {};
+        localStorage.setItem(EQUIPMENT_FORGEMAGE_STORAGE_KEY, JSON.stringify(equipmentForgemage));
     }
     
     forgePA = template.forgePA || 0;
@@ -2032,6 +2367,7 @@ loadUserInventory();
 loadSet();
 loadForgeState();
 loadParchotageState();
+initCharacterPointAllocation();
 initTabs();
 initProfil();
 initBdd();
