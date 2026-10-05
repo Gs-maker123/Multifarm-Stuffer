@@ -1370,44 +1370,131 @@ async function openClassSpellsModal(breed) {
 function initCharacterClasses() {
     const select = document.getElementById('stuffCharacterClass');
     const spellsButton = document.getElementById('stuffViewSpellsBtn');
+    const pickerButton = document.getElementById('characterClassPickerButton');
+    const pickerIcon = document.getElementById('characterClassPickerIcon');
+    const pickerLabel = document.getElementById('characterClassPickerLabel');
+    const pickerOptions = document.getElementById('characterClassPickerOptions');
     const modal = document.getElementById('modalClassSpells');
     const search = document.getElementById('classSpellsSearch');
-    if (!select || !spellsButton || !modal) return;
+    const characterImage = document.getElementById('stuffCharacterImg');
+    const defaultCharacterImage = 'assets/images/characters/dofus/0-0.png';
+    if (!select || !spellsButton || !pickerButton || !pickerIcon || !pickerLabel || !pickerOptions || !modal) return;
 
     let breeds = [];
     select.disabled = true;
+    pickerButton.disabled = true;
     spellsButton.disabled = true;
+
+    const updatePickerSelection = breed => {
+        pickerLabel.textContent = breed?.shortName.fr || 'Choisir une classe...';
+        pickerButton.setAttribute('aria-label', breed ? `Classe : ${breed.shortName.fr}` : 'Choisir une classe');
+        pickerIcon.hidden = !breed?.img;
+        if (breed?.img) pickerIcon.src = breed.img;
+        pickerOptions.querySelectorAll('[data-class-id]').forEach(option => {
+            option.setAttribute('aria-selected', String(option.dataset.classId === String(breed?.id || '')));
+        });
+    };
+
+    const closePicker = returnFocus => {
+        if (pickerOptions.matches(':popover-open')) pickerOptions.hidePopover();
+        pickerButton.setAttribute('aria-expanded', 'false');
+        if (returnFocus) pickerButton.focus();
+    };
+
+    const openPicker = () => {
+        if (pickerOptions.matches(':popover-open')) return;
+        pickerOptions.showPopover();
+        const buttonRect = pickerButton.getBoundingClientRect();
+        const width = Math.min(buttonRect.width, window.innerWidth - 16);
+        const left = Math.max(8, Math.min(buttonRect.left, window.innerWidth - width - 8));
+        const menuHeight = pickerOptions.getBoundingClientRect().height;
+        const top = buttonRect.bottom + menuHeight + 8 > window.innerHeight
+            ? Math.max(8, buttonRect.top - menuHeight - 4)
+            : buttonRect.bottom + 4;
+        pickerOptions.style.left = `${left}px`;
+        pickerOptions.style.top = `${top}px`;
+        pickerOptions.style.width = `${width}px`;
+        pickerButton.setAttribute('aria-expanded', 'true');
+        (pickerOptions.querySelector('[aria-selected="true"]') || pickerOptions.querySelector('[role="option"]'))?.focus();
+    };
+
     getDofusDbBreeds().then(catalog => {
         breeds = catalog;
         select.innerHTML = '<option value="">Choisir une classe...</option>' + breeds.map(breed =>
             `<option value="${Number(breed.id)}">${escapeHtml(breed.shortName.fr)}</option>`
         ).join('');
+        pickerOptions.innerHTML = breeds.map(breed => `
+            <button type="button" class="character-class-picker-option" role="option" data-class-id="${Number(breed.id)}" aria-selected="false">
+                <img src="${escapeHtml(breed.img || '')}" alt="" loading="lazy" onerror="this.hidden=true">
+                <span>${escapeHtml(breed.shortName.fr)}</span>
+            </button>
+        `).join('');
         const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
         select.value = characterData.classId ? String(characterData.classId) : '';
         select.disabled = false;
+        pickerButton.disabled = false;
         select.dispatchEvent(new Event('change'));
     }).catch(error => {
         console.warn('Impossible de charger les classes DofusDB', error);
         select.innerHTML = '<option value="">Classes indisponibles</option>';
         select.title = 'Impossible de joindre DofusDB';
+        pickerLabel.textContent = 'Classes indisponibles';
     });
 
     select.addEventListener('change', () => {
         const breed = breeds.find(entry => String(entry.id) === select.value);
         const characterData = JSON.parse(localStorage.getItem('dofusCharacterData') || '{}');
+        updatePickerSelection(breed);
         if (breed) {
             characterData.classId = Number(breed.id);
             characterData.className = breed.shortName.fr;
             spellsButton.disabled = false;
             spellsButton.textContent = `Sorts (${breed.breedSpellsId.length})`;
+            if (characterImage) {
+                characterImage.alt = `${breed.shortName.fr} · ${characterData.name || 'Personnage'}`;
+                characterImage.onerror = null;
+                characterImage.src = defaultCharacterImage;
+            }
         } else {
             delete characterData.classId;
             delete characterData.className;
             spellsButton.disabled = true;
             spellsButton.textContent = 'Sorts';
+            if (characterImage) {
+                characterImage.onerror = null;
+                characterImage.src = defaultCharacterImage;
+                characterImage.alt = characterData.name || 'Personnage';
+            }
         }
         localStorage.setItem('dofusCharacterData', JSON.stringify(characterData));
     });
+
+    pickerButton.addEventListener('click', openPicker);
+    pickerOptions.addEventListener('click', event => {
+        const option = event.target.closest('[data-class-id]');
+        if (!option) return;
+        select.value = option.dataset.classId;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        closePicker(true);
+    });
+    pickerOptions.addEventListener('keydown', event => {
+        const options = [...pickerOptions.querySelectorAll('[role="option"]')];
+        const index = options.indexOf(document.activeElement);
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const direction = event.key === 'ArrowDown' ? 1 : -1;
+            options[(index + direction + options.length) % options.length]?.focus();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            closePicker(true);
+        }
+    });
+    document.addEventListener('pointerdown', event => {
+        if (pickerOptions.matches(':popover-open') && !pickerOptions.contains(event.target) && !pickerButton.contains(event.target)) {
+            closePicker(false);
+        }
+    });
+    window.addEventListener('scroll', () => closePicker(false), true);
 
     spellsButton.addEventListener('click', () => {
         const breed = breeds.find(entry => String(entry.id) === select.value);
@@ -1419,7 +1506,10 @@ function initCharacterClasses() {
         if (event.target === modal) modal.classList.remove('active');
     });
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') modal.classList.remove('active');
+        if (event.key === 'Escape') {
+            closePicker(false);
+            modal.classList.remove('active');
+        }
     });
     search?.addEventListener('input', () => {
         const query = search.value.trim().toLocaleLowerCase('fr');
